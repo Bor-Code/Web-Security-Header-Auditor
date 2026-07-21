@@ -311,17 +311,54 @@ def save_json_report(result: AuditResult, output_path: Path) -> None:
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.write_text(build_text_report(result), encoding="utf-8")
 
+def load_urls_file(urls_path: Path) -> list[str]:
+    urls: list[str] = []
+
+    for line in urls_path.read_text(encoding="utf-8").splitlines():
+        stripped_line = line.strip().lstrip("\ufeff")
+
+        if not stripped_line or stripped_line.startswith("#"):
+            continue
+
+        urls.append(stripped_line)
+
+    return urls
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Passive web security header auditor for authorized URLs."
     )
-    parser.add_argument("--url", required=True, help="URL to review.")
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument("--url", help="Single URL to review.")
+    input_group.add_argument("--urls-file", help="Text file containing URLs to review.")
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds.")
     parser.add_argument("--json-out", help="Optional JSON report output path.")
     parser.add_argument("--text-out", help="Optional text report output path.")
 
     args = parser.parse_args()
+
+    if args.urls_file:
+        urls = load_urls_file(Path(args.urls_file))
+
+        if not urls:
+            print(f"Error: no URLs found in {args.urls_file}")
+            return
+
+        for index, url in enumerate(urls, start=1):
+            print(f"Batch Item {index} / {len(urls)}")
+            print("================")
+            try:
+                result = audit_url(url, args.timeout)
+            except RuntimeError as error:
+                print(f"Error: {error}")
+                print("")
+                continue
+
+            print(build_text_report(result))
+            print("")
+
+        return
 
     try:
         result = audit_url(args.url, args.timeout)
