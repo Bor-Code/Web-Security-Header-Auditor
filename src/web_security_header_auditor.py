@@ -89,6 +89,12 @@ def normalize_url(url: str) -> str:
 
     return url
 
+def validate_timeout(timeout: int) -> int:
+    if timeout <= 0:
+        raise ValueError("Timeout must be greater than zero.")
+
+    return timeout
+
 
 def get_priority(score: int) -> str:
     if score >= 80:
@@ -556,6 +562,12 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    try:
+        timeout = validate_timeout(args.timeout)
+    except ValueError as error:
+        print(f"Error: {error}")
+        return
+
     if args.urls_file:
         urls = load_urls_file(Path(args.urls_file))
 
@@ -570,7 +582,7 @@ def main() -> None:
             print(f"Batch Item {index} / {len(urls)}")
             print("================")
             try:
-                result = audit_url(url, args.timeout)
+                result = audit_url(url, timeout)
             except RuntimeError as error:
                 failures.append((url, str(error)))
                 print(f"Error: {error}")
@@ -597,7 +609,7 @@ def main() -> None:
         return
 
     try:
-        result = audit_url(args.url, args.timeout)
+        result = audit_url(args.url, timeout)
     except RuntimeError as error:
         print(f"Error: {error}")
         return
