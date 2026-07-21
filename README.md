@@ -28,6 +28,8 @@ Use it only on websites you own or are authorized to review.
 - 0-100 style review score
 - Text report output
 - JSON report output
+- Batch URL input
+- Batch summary output
 
 ## Checked Headers
 
@@ -50,6 +52,12 @@ pip install -r .\requirements.txt
 
 ```powershell
 python .\src\web_security_header_auditor.py --url https://example.com
+```
+
+Batch review from a URL list:
+
+```powershell
+python .\src\web_security_header_auditor.py --urls-file .\sample-inputs\urls.txt
 ```
 
 Save reports:
