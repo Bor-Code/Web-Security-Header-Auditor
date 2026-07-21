@@ -70,6 +70,7 @@ class AuditResult:
     score: int
     max_score: int
     priority: str
+    grade: str
     header_findings: list[HeaderFinding]
     cookie_findings: list[CookieFinding]
     safety_note: str
@@ -93,6 +94,17 @@ def get_priority(score: int) -> str:
     if score >= 50:
         return "Needs review"
     return "High review priority"
+
+def get_grade(score: int) -> str:
+    if score >= 90:
+        return "A"
+    if score >= 70:
+        return "B"
+    if score >= 50:
+        return "C"
+    if score >= 25:
+        return "D"
+    return "F"
 
 
 def parse_cookies(headers: requests.structures.CaseInsensitiveDict) -> list[CookieFinding]:
@@ -165,6 +177,7 @@ def audit_url(url: str, timeout: int) -> AuditResult:
         score=score,
         max_score=max_score,
         priority=get_priority(score),
+        grade=get_grade(score),
         header_findings=findings,
         cookie_findings=parse_cookies(response.headers),
         safety_note=(
@@ -243,6 +256,7 @@ def build_text_report(result: AuditResult) -> str:
     lines.append(f"Uses HTTPS: {result.uses_https}")
     lines.append(f"Score: {result.score} / {result.max_score}")
     lines.append(f"Review Priority: {result.priority}")
+    lines.append(f"Review Grade: {result.grade}")
 
     lines.append("")
     lines.append("Security Header Findings")
