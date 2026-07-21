@@ -174,6 +174,62 @@ def audit_url(url: str, timeout: int) -> AuditResult:
     )
 
 
+def build_review_notes(result: AuditResult) -> list[str]:
+    notes: list[str] = []
+
+    if not result.uses_https:
+        notes.append(
+            "HTTPS is not used; review whether the site should enforce encrypted transport."
+        )
+
+    for finding in result.header_findings:
+        if finding.present:
+            continue
+
+        if finding.header == "Content-Security-Policy":
+            notes.append(
+                "Content-Security-Policy is missing; review whether CSP should be configured to reduce script injection risk."
+            )
+        elif finding.header == "Strict-Transport-Security":
+            notes.append(
+                "Strict-Transport-Security is missing; review whether HTTPS should be enforced with HSTS."
+            )
+        elif finding.header == "X-Frame-Options":
+            notes.append(
+                "X-Frame-Options is missing; review whether clickjacking protection is required."
+            )
+        elif finding.header == "X-Content-Type-Options":
+            notes.append(
+                "X-Content-Type-Options is missing; review whether MIME sniffing protection should be enabled."
+            )
+        elif finding.header == "Referrer-Policy":
+            notes.append(
+                "Referrer-Policy is missing; review whether referrer data should be limited."
+            )
+        elif finding.header == "Permissions-Policy":
+            notes.append(
+                "Permissions-Policy is missing; review whether browser feature access should be restricted."
+            )
+
+    for cookie in result.cookie_findings:
+        if not cookie.secure:
+            notes.append(
+                f"Cookie '{cookie.cookie_name}' is missing Secure; review whether it should only be sent over HTTPS."
+            )
+        if not cookie.httponly:
+            notes.append(
+                f"Cookie '{cookie.cookie_name}' is missing HttpOnly; review whether client-side script access should be blocked."
+            )
+        if not cookie.samesite:
+            notes.append(
+                f"Cookie '{cookie.cookie_name}' is missing SameSite; review whether cross-site cookie behavior should be restricted."
+            )
+
+    if not notes:
+        notes.append("No immediate header or cookie review notes were generated.")
+
+    return notes
+
 def build_text_report(result: AuditResult) -> str:
     lines: list[str] = []
 
@@ -198,6 +254,13 @@ def build_text_report(result: AuditResult) -> str:
         if finding.value:
             lines.append(f"  Value: {finding.value}")
         lines.append(f"  Note: {finding.note}")
+
+    lines.append("")
+    lines.append("Review Notes")
+    lines.append("------------")
+
+    for note in build_review_notes(result):
+        lines.append(f"- {note}")
 
     lines.append("")
     lines.append("Cookie Findings")
