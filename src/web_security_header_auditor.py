@@ -321,6 +321,12 @@ def save_batch_json_report(
         "failed_audits": len(failures),
         "grade_distribution": get_grade_distribution(results),
         "priority_distribution": get_priority_distribution(results),
+        "highest_score": summarize_score_result(
+            max(results, key=lambda result: result.score, default=None)
+        ),
+        "lowest_score": summarize_score_result(
+            min(results, key=lambda result: result.score, default=None)
+        ),
         "results": [
             {
                 **asdict(result),
@@ -362,6 +368,18 @@ def get_grade_distribution(results: list[AuditResult]) -> dict[str, int]:
 def get_priority_distribution(results: list[AuditResult]) -> dict[str, int]:
     priority_counts = Counter(result.priority for result in results)
     return dict(sorted(priority_counts.items()))
+
+def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] | None:
+    if result is None:
+        return None
+
+    return {
+        "url": result.final_url,
+        "score": result.score,
+        "max_score": result.max_score,
+        "grade": result.grade,
+        "priority": result.priority,
+    }
 
 def build_batch_summary(
     results: list[AuditResult],
