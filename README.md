@@ -66,6 +66,12 @@ Save reports:
 python .\src\web_security_header_auditor.py --url https://example.com --json-out .\reports\example.json --text-out .\reports\example.txt
 ```
 
+Save a batch JSON report:
+
+```powershell
+python .\src\web_security_header_auditor.py --urls-file .\sample-inputs\urls.txt --json-out .\reports\batch.json
+```
+
 ## Review Score
 
 The score is a manual review signal, not a final security verdict.
