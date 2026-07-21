@@ -136,12 +136,17 @@ def parse_cookies(headers: requests.structures.CaseInsensitiveDict) -> list[Cook
 def audit_url(url: str, timeout: int) -> AuditResult:
     normalized_url = normalize_url(url)
 
-    response = requests.get(
-        normalized_url,
-        timeout=timeout,
-        allow_redirects=True,
-        headers={"User-Agent": "Web-Security-Header-Auditor/1.0"},
-    )
+    try:
+        response = requests.get(
+            normalized_url,
+            timeout=timeout,
+            allow_redirects=True,
+            headers={"User-Agent": "Web-Security-Header-Auditor/1.0"},
+        )
+    except requests.RequestException as error:
+        raise RuntimeError(
+            f"Request failed for {normalized_url}. Reason: {error}"
+        ) from error
 
     lower_headers = {key.lower(): value for key, value in response.headers.items()}
     findings: list[HeaderFinding] = []
@@ -318,7 +323,12 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    result = audit_url(args.url, args.timeout)
+    try:
+        result = audit_url(args.url, args.timeout)
+    except RuntimeError as error:
+        print(f"Error: {error}")
+        return
+
     print(build_text_report(result))
 
     if args.json_out:
