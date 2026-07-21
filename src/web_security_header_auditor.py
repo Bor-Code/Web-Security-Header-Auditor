@@ -285,6 +285,7 @@ def build_text_report(result: AuditResult) -> str:
 
 def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload = asdict(result)
+    payload["review_notes"] = build_review_notes(result)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
