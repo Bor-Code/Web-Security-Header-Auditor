@@ -1,4 +1,5 @@
 ﻿import argparse
+import csv
 import json
 from collections import Counter
 from dataclasses import asdict, dataclass
@@ -87,6 +88,12 @@ def normalize_url(url: str) -> str:
         raise ValueError("Only http and https URLs are supported.")
 
     return url
+
+def validate_timeout(timeout: int) -> int:
+    if timeout <= 0:
+        raise ValueError("Timeout must be greater than zero.")
+
+    return timeout
 
 
 def get_priority(score: int) -> str:
@@ -302,10 +309,10 @@ def build_text_report(result: AuditResult) -> str:
 
     return "\n".join(lines)
 
-
 def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload = asdict(result)
     payload["review_notes"] = build_review_notes(result)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 def save_batch_json_report(
@@ -345,11 +352,82 @@ def save_batch_json_report(
         ],
     }
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def save_text_report(result: AuditResult, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(build_text_report(result), encoding="utf-8")
+
+def save_batch_text_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+    output_path: Path,
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        build_batch_text_report(results, failures, total_urls),
+        encoding="utf-8",
+    )
+
+def get_header_names_by_status(result: AuditResult, present: bool) -> str:
+    return "; ".join(
+        finding.header
+        for finding in result.header_findings
+        if finding.present is present
+    )
+
+
+def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
+    fieldnames = [
+        "url",
+        "final_url",
+        "status_code",
+        "uses_https",
+        "score",
+        "max_score",
+        "grade",
+        "priority",
+        "present_header_count",
+        "missing_header_count",
+        "cookie_count",
+        "review_note_count",
+        "present_headers",
+        "missing_headers",
+    ]
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for result in sorted(results, key=lambda item: item.score):
+            writer.writerow(
+                {
+                    "url": result.url,
+                    "final_url": result.final_url,
+                    "status_code": result.status_code,
+                    "uses_https": result.uses_https,
+                    "score": result.score,
+                    "max_score": result.max_score,
+                    "grade": result.grade,
+                    "priority": result.priority,
+                    "priority": result.priority,
+                    "present_header_count": len(
+                        [finding for finding in result.header_findings if finding.present]
+                    ),
+                    "missing_header_count": len(
+                        [finding for finding in result.header_findings if not finding.present]
+                    ),
+                    "cookie_count": len(result.cookie_findings),
+                    "review_note_count": len(build_review_notes(result)),
+                    "present_headers": get_header_names_by_status(result, True),
+                    "missing_headers": get_header_names_by_status(result, False),
+                }
+            )
 
 def load_urls_file(urls_path: Path) -> list[str]:
     urls: list[str] = []
@@ -507,8 +585,15 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds.")
     parser.add_argument("--json-out", help="Optional JSON report output path.")
     parser.add_argument("--text-out", help="Optional text report output path.")
+    parser.add_argument("--csv-out", help="Optional CSV report output path.")
 
     args = parser.parse_args()
+
+    try:
+        timeout = validate_timeout(args.timeout)
+    except ValueError as error:
+        print(f"Error: {error}")
+        return
 
     if args.urls_file:
         urls = load_urls_file(Path(args.urls_file))
@@ -524,7 +609,7 @@ def main() -> None:
             print(f"Batch Item {index} / {len(urls)}")
             print("================")
             try:
-                result = audit_url(url, args.timeout)
+                result = audit_url(url, timeout)
             except RuntimeError as error:
                 failures.append((url, str(error)))
                 print(f"Error: {error}")
@@ -539,16 +624,16 @@ def main() -> None:
             save_batch_json_report(results, failures, len(urls), Path(args.json_out))
 
         if args.text_out:
-            Path(args.text_out).write_text(
-                build_batch_text_report(results, failures, len(urls)),
-                encoding="utf-8",
-            )
+            save_batch_text_report(results, failures, len(urls), Path(args.text_out))
+
+        if args.csv_out:
+            save_csv_report(results, Path(args.csv_out))
 
         print(build_batch_summary(results, failures, len(urls)))
         return
 
     try:
-        result = audit_url(args.url, args.timeout)
+        result = audit_url(args.url, timeout)
     except RuntimeError as error:
         print(f"Error: {error}")
         return
@@ -560,6 +645,9 @@ def main() -> None:
 
     if args.text_out:
         save_text_report(result, Path(args.text_out))
+
+    if args.csv_out:
+        save_csv_report([result], Path(args.csv_out))
 
 
 if __name__ == "__main__":
