@@ -1,5 +1,6 @@
 ﻿import argparse
 import json
+from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -307,6 +308,43 @@ def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload["review_notes"] = build_review_notes(result)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+def save_batch_json_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+    output_path: Path,
+) -> None:
+    payload = {
+        "mode": "batch",
+        "total_urls": total_urls,
+        "successful_audits": len(results),
+        "failed_audits": len(failures),
+        "grade_distribution": get_grade_distribution(results),
+        "priority_distribution": get_priority_distribution(results),
+        "highest_score": summarize_score_result(
+            max(results, key=lambda result: result.score, default=None)
+        ),
+        "lowest_score": summarize_score_result(
+            min(results, key=lambda result: result.score, default=None)
+        ),
+        "results": [
+            {
+                **asdict(result),
+                "review_notes": build_review_notes(result),
+            }
+            for result in results
+        ],
+        "failures": [
+            {
+                "url": url,
+                "error": error_message,
+            }
+            for url, error_message in failures
+        ],
+    }
+
+    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
 
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.write_text(build_text_report(result), encoding="utf-8")
@@ -324,6 +362,25 @@ def load_urls_file(urls_path: Path) -> list[str]:
 
     return urls
 
+def get_grade_distribution(results: list[AuditResult]) -> dict[str, int]:
+    return dict(sorted(Counter(result.grade for result in results).items()))
+
+def get_priority_distribution(results: list[AuditResult]) -> dict[str, int]:
+    priority_counts = Counter(result.priority for result in results)
+    return dict(sorted(priority_counts.items()))
+
+def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] | None:
+    if result is None:
+        return None
+
+    return {
+        "url": result.final_url,
+        "score": result.score,
+        "max_score": result.max_score,
+        "grade": result.grade,
+        "priority": result.priority,
+    }
+
 def build_batch_summary(
     results: list[AuditResult],
     failures: list[tuple[str, str]],
@@ -336,6 +393,26 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+
+    grade_counts = get_grade_distribution(results)
+    grade_distribution = ", ".join(
+        f"{grade}: {count}" for grade, count in grade_counts.items()
+    )
+
+    priority_distribution = ", ".join(
+        f"{priority}: {count}"
+        for priority, count in get_priority_distribution(results).items()
+    )
+
+    if priority_distribution:
+        lines.append(f"Priority Distribution: {priority_distribution}")
+    else:
+        lines.append("Priority Distribution: None")
+
+    if grade_distribution:
+        lines.append(f"Grade Distribution: {grade_distribution}")
+    else:
+        lines.append("Grade Distribution: None")
 
     highest_result = max(results, key=lambda result: result.score, default=None)
     lowest_result = min(results, key=lambda result: result.score, default=None)
@@ -363,6 +440,29 @@ def build_batch_summary(
 
     return "\n".join(lines)
 
+def build_batch_text_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+) -> str:
+    lines: list[str] = []
+
+    for index, result in enumerate(results, start=1):
+        lines.append(f"Batch Item {index} / {total_urls}")
+        lines.append("================")
+        lines.append(build_text_report(result))
+        lines.append("")
+
+    if failures:
+        lines.append("Failed Batch Items")
+        lines.append("------------------")
+        for url, error_message in failures:
+            lines.append(f"- {url}: {error_message}")
+        lines.append("")
+
+    lines.append(build_batch_summary(results, failures, total_urls))
+
+    return "\n".join(lines)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -401,6 +501,15 @@ def main() -> None:
             results.append(result)
             print(build_text_report(result))
             print("")
+
+        if args.json_out:
+            save_batch_json_report(results, failures, len(urls), Path(args.json_out))
+
+        if args.text_out:
+            Path(args.text_out).write_text(
+                build_batch_text_report(results, failures, len(urls)),
+                encoding="utf-8",
+            )
 
         print(build_batch_summary(results, failures, len(urls)))
         return
