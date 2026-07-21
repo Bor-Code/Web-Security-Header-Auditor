@@ -392,6 +392,29 @@ def build_batch_summary(
 
     return "\n".join(lines)
 
+def build_batch_text_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+) -> str:
+    lines: list[str] = []
+
+    for index, result in enumerate(results, start=1):
+        lines.append(f"Batch Item {index} / {total_urls}")
+        lines.append("================")
+        lines.append(build_text_report(result))
+        lines.append("")
+
+    if failures:
+        lines.append("Failed Batch Items")
+        lines.append("------------------")
+        for url, error_message in failures:
+            lines.append(f"- {url}: {error_message}")
+        lines.append("")
+
+    lines.append(build_batch_summary(results, failures, total_urls))
+
+    return "\n".join(lines)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -433,6 +456,12 @@ def main() -> None:
 
         if args.json_out:
             save_batch_json_report(results, failures, len(urls), Path(args.json_out))
+
+        if args.text_out:
+            Path(args.text_out).write_text(
+                build_batch_text_report(results, failures, len(urls)),
+                encoding="utf-8",
+            )
 
         print(build_batch_summary(results, failures, len(urls)))
         return
