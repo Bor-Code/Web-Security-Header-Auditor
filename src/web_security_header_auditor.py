@@ -1,4 +1,5 @@
 ﻿import argparse
+import csv
 import json
 from collections import Counter
 from dataclasses import asdict, dataclass
@@ -351,6 +352,50 @@ def save_batch_json_report(
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.write_text(build_text_report(result), encoding="utf-8")
 
+def get_header_names_by_status(result: AuditResult, present: bool) -> str:
+    return "; ".join(
+        finding.header
+        for finding in result.header_findings
+        if finding.present is present
+    )
+
+
+def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
+    fieldnames = [
+        "url",
+        "final_url",
+        "status_code",
+        "uses_https",
+        "score",
+        "max_score",
+        "grade",
+        "priority",
+        "present_headers",
+        "missing_headers",
+    ]
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for result in sorted(results, key=lambda item: item.score):
+            writer.writerow(
+                {
+                    "url": result.url,
+                    "final_url": result.final_url,
+                    "status_code": result.status_code,
+                    "uses_https": result.uses_https,
+                    "score": result.score,
+                    "max_score": result.max_score,
+                    "grade": result.grade,
+                    "priority": result.priority,
+                    "present_headers": get_header_names_by_status(result, True),
+                    "missing_headers": get_header_names_by_status(result, False),
+                }
+            )
+
 def load_urls_file(urls_path: Path) -> list[str]:
     urls: list[str] = []
 
@@ -507,6 +552,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds.")
     parser.add_argument("--json-out", help="Optional JSON report output path.")
     parser.add_argument("--text-out", help="Optional text report output path.")
+    parser.add_argument("--csv-out", help="Optional CSV report output path.")
 
     args = parser.parse_args()
 
@@ -544,6 +590,9 @@ def main() -> None:
                 encoding="utf-8",
             )
 
+        if args.csv_out:
+            save_csv_report(results, Path(args.csv_out))
+
         print(build_batch_summary(results, failures, len(urls)))
         return
 
@@ -560,6 +609,9 @@ def main() -> None:
 
     if args.text_out:
         save_text_report(result, Path(args.text_out))
+
+    if args.csv_out:
+        save_csv_report([result], Path(args.csv_out))
 
 
 if __name__ == "__main__":
