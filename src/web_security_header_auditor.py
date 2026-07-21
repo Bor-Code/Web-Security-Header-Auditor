@@ -311,17 +311,99 @@ def save_json_report(result: AuditResult, output_path: Path) -> None:
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.write_text(build_text_report(result), encoding="utf-8")
 
+def load_urls_file(urls_path: Path) -> list[str]:
+    urls: list[str] = []
+
+    for line in urls_path.read_text(encoding="utf-8").splitlines():
+        stripped_line = line.strip().lstrip("\ufeff")
+
+        if not stripped_line or stripped_line.startswith("#"):
+            continue
+
+        urls.append(stripped_line)
+
+    return urls
+
+def build_batch_summary(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+) -> str:
+    lines: list[str] = []
+
+    lines.append("Batch Summary")
+    lines.append("-------------")
+    lines.append(f"Total URLs: {total_urls}")
+    lines.append(f"Successful Audits: {len(results)}")
+    lines.append(f"Failed Audits: {len(failures)}")
+
+    highest_result = max(results, key=lambda result: result.score, default=None)
+    lowest_result = min(results, key=lambda result: result.score, default=None)
+
+    if highest_result:
+        lines.append(
+            f"Highest Score: {highest_result.score} / {highest_result.max_score} - {highest_result.final_url}"
+        )
+    else:
+        lines.append("Highest Score: None")
+
+    if lowest_result:
+        lines.append(
+            f"Lowest Score: {lowest_result.score} / {lowest_result.max_score} - {lowest_result.final_url}"
+        )
+    else:
+        lines.append("Lowest Score: None")
+
+    if failures:
+        lines.append("")
+        lines.append("Failed URLs")
+        lines.append("-----------")
+        for url, error_message in failures:
+            lines.append(f"- {url}: {error_message}")
+
+    return "\n".join(lines)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Passive web security header auditor for authorized URLs."
     )
-    parser.add_argument("--url", required=True, help="URL to review.")
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument("--url", help="Single URL to review.")
+    input_group.add_argument("--urls-file", help="Text file containing URLs to review.")
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds.")
     parser.add_argument("--json-out", help="Optional JSON report output path.")
     parser.add_argument("--text-out", help="Optional text report output path.")
 
     args = parser.parse_args()
+
+    if args.urls_file:
+        urls = load_urls_file(Path(args.urls_file))
+
+        if not urls:
+            print(f"Error: no URLs found in {args.urls_file}")
+            return
+
+        results: list[AuditResult] = []
+        failures: list[tuple[str, str]] = []
+
+        for index, url in enumerate(urls, start=1):
+            print(f"Batch Item {index} / {len(urls)}")
+            print("================")
+            try:
+                result = audit_url(url, args.timeout)
+            except RuntimeError as error:
+                failures.append((url, str(error)))
+                print(f"Error: {error}")
+                print("")
+                continue
+
+            results.append(result)
+            print(build_text_report(result))
+            print("")
+
+        print(build_batch_summary(results, failures, len(urls)))
+        return
 
     try:
         result = audit_url(args.url, args.timeout)
