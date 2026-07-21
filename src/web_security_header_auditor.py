@@ -1,5 +1,6 @@
 ﻿import argparse
 import json
+from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -365,6 +366,16 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+
+    grade_counts = Counter(result.grade for result in results)
+    grade_distribution = ", ".join(
+        f"{grade}: {count}" for grade, count in sorted(grade_counts.items())
+    )
+
+    if grade_distribution:
+        lines.append(f"Grade Distribution: {grade_distribution}")
+    else:
+        lines.append("Grade Distribution: None")
 
     highest_result = max(results, key=lambda result: result.score, default=None)
     lowest_result = min(results, key=lambda result: result.score, default=None)
