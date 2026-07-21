@@ -307,6 +307,35 @@ def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload["review_notes"] = build_review_notes(result)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+def save_batch_json_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+    output_path: Path,
+) -> None:
+    payload = {
+        "mode": "batch",
+        "total_urls": total_urls,
+        "successful_audits": len(results),
+        "failed_audits": len(failures),
+        "results": [
+            {
+                **asdict(result),
+                "review_notes": build_review_notes(result),
+            }
+            for result in results
+        ],
+        "failures": [
+            {
+                "url": url,
+                "error": error_message,
+            }
+            for url, error_message in failures
+        ],
+    }
+
+    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
 
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.write_text(build_text_report(result), encoding="utf-8")
@@ -401,6 +430,9 @@ def main() -> None:
             results.append(result)
             print(build_text_report(result))
             print("")
+
+        if args.json_out:
+            save_batch_json_report(results, failures, len(urls), Path(args.json_out))
 
         print(build_batch_summary(results, failures, len(urls)))
         return
