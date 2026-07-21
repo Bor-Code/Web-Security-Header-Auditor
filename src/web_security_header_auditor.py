@@ -319,6 +319,7 @@ def save_batch_json_report(
         "total_urls": total_urls,
         "successful_audits": len(results),
         "failed_audits": len(failures),
+        "average_score": get_average_score(results),
         "grade_distribution": get_grade_distribution(results),
         "priority_distribution": get_priority_distribution(results),
         "highest_score": summarize_score_result(
@@ -369,6 +370,15 @@ def get_priority_distribution(results: list[AuditResult]) -> dict[str, int]:
     priority_counts = Counter(result.priority for result in results)
     return dict(sorted(priority_counts.items()))
 
+def get_average_score(results: list[AuditResult]) -> float | None:
+    if not results:
+        return None
+
+    return round(
+        sum(result.score for result in results) / len(results),
+        2,
+    )
+
 def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] | None:
     if result is None:
         return None
@@ -393,6 +403,12 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+    average_score = get_average_score(results)
+
+    if average_score is None:
+        lines.append("Average Score: None")
+    else:
+        lines.append(f"Average Score: {average_score:.2f} / 100")
 
     grade_counts = get_grade_distribution(results)
     grade_distribution = ", ".join(
