@@ -319,6 +319,7 @@ def save_batch_json_report(
         "total_urls": total_urls,
         "successful_audits": len(results),
         "failed_audits": len(failures),
+        "grade_distribution": get_grade_distribution(results),
         "results": [
             {
                 **asdict(result),
@@ -354,6 +355,9 @@ def load_urls_file(urls_path: Path) -> list[str]:
 
     return urls
 
+def get_grade_distribution(results: list[AuditResult]) -> dict[str, int]:
+    return dict(sorted(Counter(result.grade for result in results).items()))
+
 def build_batch_summary(
     results: list[AuditResult],
     failures: list[tuple[str, str]],
@@ -367,9 +371,9 @@ def build_batch_summary(
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
 
-    grade_counts = Counter(result.grade for result in results)
+    grade_counts = get_grade_distribution(results)
     grade_distribution = ", ".join(
-        f"{grade}: {count}" for grade, count in sorted(grade_counts.items())
+        f"{grade}: {count}" for grade, count in grade_counts.items()
     )
 
     if grade_distribution:
