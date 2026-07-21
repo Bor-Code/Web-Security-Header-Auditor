@@ -319,6 +319,8 @@ def save_batch_json_report(
         "total_urls": total_urls,
         "successful_audits": len(results),
         "failed_audits": len(failures),
+        "average_score": get_average_score(results),
+        "review_recommendation": get_batch_review_recommendation(results, failures),
         "grade_distribution": get_grade_distribution(results),
         "priority_distribution": get_priority_distribution(results),
         "highest_score": summarize_score_result(
@@ -369,6 +371,27 @@ def get_priority_distribution(results: list[AuditResult]) -> dict[str, int]:
     priority_counts = Counter(result.priority for result in results)
     return dict(sorted(priority_counts.items()))
 
+def get_average_score(results: list[AuditResult]) -> float | None:
+    if not results:
+        return None
+
+    return round(
+        sum(result.score for result in results) / len(results),
+        2,
+    )
+
+def get_batch_review_recommendation(results: list[AuditResult], failures: list[tuple[str, str]]) -> str:
+    if failures and not results:
+        return "Review failed URLs first because no successful audits were completed."
+
+    if failures:
+        return "Review failed URLs separately, then start with the lowest score and high priority URLs."
+
+    if not results:
+        return "No successful audits were completed."
+
+    return "Start with the lowest score and high priority URLs first."
+
 def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] | None:
     if result is None:
         return None
@@ -393,6 +416,16 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+    average_score = get_average_score(results)
+
+    if average_score is None:
+        lines.append("Average Score: None")
+    else:
+        lines.append(f"Average Score: {average_score:.2f} / 100")
+
+    lines.append(
+        f"Review Recommendation: {get_batch_review_recommendation(results, failures)}"
+    )
 
     grade_counts = get_grade_distribution(results)
     grade_distribution = ", ".join(
