@@ -309,10 +309,10 @@ def build_text_report(result: AuditResult) -> str:
 
     return "\n".join(lines)
 
-
 def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload = asdict(result)
     payload["review_notes"] = build_review_notes(result)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 def save_batch_json_report(
@@ -352,11 +352,25 @@ def save_batch_json_report(
         ],
     }
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def save_text_report(result: AuditResult, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(build_text_report(result), encoding="utf-8")
+
+def save_batch_text_report(
+    results: list[AuditResult],
+    failures: list[tuple[str, str]],
+    total_urls: int,
+    output_path: Path,
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        build_batch_text_report(results, failures, total_urls),
+        encoding="utf-8",
+    )
 
 def get_header_names_by_status(result: AuditResult, present: bool) -> str:
     return "; ".join(
@@ -597,10 +611,7 @@ def main() -> None:
             save_batch_json_report(results, failures, len(urls), Path(args.json_out))
 
         if args.text_out:
-            Path(args.text_out).write_text(
-                build_batch_text_report(results, failures, len(urls)),
-                encoding="utf-8",
-            )
+            save_batch_text_report(results, failures, len(urls), Path(args.text_out))
 
         if args.csv_out:
             save_csv_report(results, Path(args.csv_out))
