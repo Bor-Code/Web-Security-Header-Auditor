@@ -292,6 +292,11 @@ def build_review_notes(result: AuditResult) -> list[str]:
 
     return notes
 
+
+def get_review_notes_count(result: AuditResult) -> int:
+    return len(build_review_notes(result))
+
+
 def build_text_report(result: AuditResult) -> str:
     lines: list[str] = []
     review_notes = build_review_notes(result)
@@ -364,7 +369,7 @@ def save_batch_json_report(
         "successful_audits": len(results),
         "failed_audits": len(failures),
         "total_review_notes": sum(
-            len(build_review_notes(result))
+            get_review_notes_count(result)
             for result in results
         ),
         "average_score": get_average_score(results),
@@ -450,7 +455,6 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         writer.writeheader()
 
         for result in sorted(results, key=lambda item: item.score):
-            review_notes = build_review_notes(result)
 
             writer.writerow(
                 {
@@ -469,7 +473,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                         [finding for finding in result.header_findings if not finding.present]
                     ),
                     "cookie_count": len(result.cookie_findings),
-                    "review_notes_count": len(review_notes),
+                    "review_notes_count": get_review_notes_count(result),
                     "present_headers": get_header_names_by_status(result, True),
                     "missing_headers": get_header_names_by_status(result, False),
                 }
