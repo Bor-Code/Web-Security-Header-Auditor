@@ -268,11 +268,20 @@ function App() {
                 {batchResults.map((scan) => (
                   <article
                     className={
-                      batchWeakestResult?.checked_at_utc === scan.checked_at_utc
-                        ? 'batch-result weakest'
-                        : 'batch-result'
+                      [
+                        'batch-result',
+                        batchWeakestResult?.checked_at_utc === scan.checked_at_utc
+                          ? 'weakest'
+                          : '',
+                        result?.checked_at_utc === scan.checked_at_utc
+                          ? 'selected'
+                          : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
                     }
                     key={`${scan.final_url}-${scan.checked_at_utc}`}
+                    onClick={() => setResult(scan)}
                   >
                     <div>
                       <strong>{scan.final_url}</strong>

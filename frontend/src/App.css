@@ -898,3 +898,22 @@
     justify-self: start;
   }
 }
+
+.batch-result {
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160msms ease;
+}
+
+.batch-result:hover {
+  border-color: rgba(34, 211, 238, 0.36);
+  transform: translateY(-1px);
+}
+
+.batch-result.selected {
+  border-color: rgba(34, 211, 238, 0.58);
+  background:
+    linear-gradient(90deg, rgba(34, 211, 238, 0.14), rgba(15, 23, 42, 0.72));
+}
