@@ -719,6 +719,9 @@ def main() -> None:
             save_csv_report(results, Path(args.csv_out))
 
         print(build_batch_summary(results, failures, len(urls)))
+        
+        if fail_below is not None and any(result.score < fail_below for result in results):
+            raise SystemExit(1)
         return
 
     try:
