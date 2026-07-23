@@ -364,13 +364,13 @@ def save_batch_json_report(
     output_path: Path,
 ) -> None:
     payload = {
-    "mode": "batch",
-    "total_urls": total_urls,
-    "successful_audits": len(results),
-    "failed_audits": len(failures),
-    "total_review_notes": sum(
-        get_review_notes_count(result)
-        for result in results
+        "mode": "batch",
+        "total_urls": total_urls,
+        "successful_audits": len(results),
+        "failed_audits": len(failures),
+        "total_review_notes": sum(
+            len(build_review_notes(result))
+            for result in results
         ),
     "average_score": get_average_score(results),
     "review_recommendation": get_batch_review_recommendation(results, failures),
@@ -455,6 +455,8 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         writer.writeheader()
 
         for result in sorted(results, key=lambda item: item.score):
+            review_notes = build_review_notes(result)
+
             writer.writerow(
                 {
                     "url": result.url,
@@ -472,7 +474,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                         [finding for finding in result.header_findings if not finding.present]
                     ),
                     "cookie_count": len(result.cookie_findings),
-                    "review_note_count": len(build_review_notes(result)),
+                    "review_notes_count": len(review_notes),
                     "present_headers": get_header_names_by_status(result, True),
                     "missing_headers": get_header_names_by_status(result, False),
                 }
