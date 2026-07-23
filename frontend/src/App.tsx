@@ -173,26 +173,30 @@ function App() {
       .join(' ')
   }
 
-  function buildAuditSummary(scan: AuditResponse) {
-  const missingHeaders = scan.header_findings
-    .filter((finding) => !finding.present)
-    .map((finding) => finding.header)
+  function getMissingHeaderNames(scan: AuditResponse) {
+    const missingHeaders = scan.header_findings
+      .filter((finding) => !finding.present)
+      .map((finding) => finding.header)
 
-  return [
-    'Web Security Header Audit Summary',
-    `URL: ${scan.url}`,
-    `Final URL: ${scan.final_url}`,
-    `Status Code: ${scan.status_code}`,
-    `Uses HTTPS: ${scan.uses_https ? 'Yes' : 'No'}`,
-    `Score: ${scan.score} / ${scan.max_score}`,
-    `Grade: ${scan.grade}`,
-    `Priority: ${scan.priority}`,
-    `Missing Headers: ${
-      missingHeaders.length > 0 ? missingHeaders.join(', ') : 'None'
-    }`,
-    `Review Notes Count: ${scan.review_notes_count}`,
-  ].join('\n')
-}
+    return missingHeaders.length > 0 ? missingHeaders.join(', ') : 'None'
+  }
+
+  function buildAuditSummary(scan: AuditResponse) {
+    const summaryLines = [
+      'Web Security Header Audit Summary',
+      `URL: ${scan.url}`,
+      `Final URL: ${scan.final_url}`,
+      `Status Code: ${scan.status_code}`,
+      `Uses HTTPS: ${scan.uses_https ? 'Yes' : 'No'}`,
+      `Score: ${scan.score} / ${scan.max_score}`,
+      `Grade: ${scan.grade}`,
+      `Priority: ${scan.priority}`,
+      `Missing Headers: ${getMissingHeaderNames(scan)}`,
+      `Review Notes Count: ${scan.review_notes_count}`,
+    ]
+
+    return summaryLines.join('\n')
+  }
 
 async function copyAuditSummary() {
   if (!result) {
