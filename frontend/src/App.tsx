@@ -160,6 +160,18 @@ function App() {
     [batchResults],
   )
 
+  function getBatchResultClassName(scan: AuditResponse) {
+    return [
+      'batch-result',
+      batchWeakestResult?.checked_at_utc === scan.checked_at_utc
+        ? 'weakest'
+        : '',
+      result?.checked_at_utc === scan.checked_at_utc ? 'selected' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
   const totalHeaders = presentHeaders + missingHeaders
 
   const postureLabel = result
@@ -267,19 +279,7 @@ function App() {
               <div className="batch-results">
                 {batchResults.map((scan) => (
                   <article
-                    className={
-                      [
-                        'batch-result',
-                        batchWeakestResult?.checked_at_utc === scan.checked_at_utc
-                          ? 'weakest'
-                          : '',
-                        result?.checked_at_utc === scan.checked_at_utc
-                          ? 'selected'
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
-                    }
+                  className={getBatchResultClassName(scan)}
                     key={`${scan.final_url}-${scan.checked_at_utc}`}
                     onClick={() => setResult(scan)}
                   >
