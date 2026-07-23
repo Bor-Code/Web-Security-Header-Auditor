@@ -31,6 +31,7 @@ function App() {
   const [result, setResult] = useState<AuditResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [copyMessage, setCopyMessage] = useState('')
   const [scanHistory, setScanHistory] = useState<AuditResponse[]>([])
   const [batchUrls, setBatchUrls] = useState(
     'https://example.com\nhttps://www.iana.org',
@@ -172,6 +173,37 @@ function App() {
       .join(' ')
   }
 
+  function buildAuditSummary(scan: AuditResponse) {
+  const missingHeaders = scan.header_findings
+    .filter((finding) => !finding.present)
+    .map((finding) => finding.header)
+
+  return [
+    'Web Security Header Audit Summary',
+    `URL: ${scan.url}`,
+    `Final URL: ${scan.final_url}`,
+    `Status Code: ${scan.status_code}`,
+    `Uses HTTPS: ${scan.uses_https ? 'Yes' : 'No'}`,
+    `Score: ${scan.score} / ${scan.max_score}`,
+    `Grade: ${scan.grade}`,
+    `Priority: ${scan.priority}`,
+    `Missing Headers: ${
+      missingHeaders.length > 0 ? missingHeaders.join(', ') : 'None'
+    }`,
+    `Review Notes Count: ${scan.review_notes_count}`,
+  ].join('\n')
+}
+
+async function copyAuditSummary() {
+  if (!result) {
+    setCopyMessage('Run or select an audit first.')
+    return
+  }
+
+  await navigator.clipboard.writeText(buildAuditSummary(result))
+  setCopyMessage('Summary copied.')
+}
+
   const totalHeaders = presentHeaders + missingHeaders
 
   const postureLabel = result
@@ -190,9 +222,19 @@ function App() {
             </div>
           </div>
 
-          <div className="runtime-status">
-            <span className="pulse-dot" />
-            Local API Ready
+            <div className="topbar-actions">
+            <button
+              className="summary-copy-button"
+              onClick={copyAuditSummary}
+              disabled={!result}
+            >
+              Copy Summary
+            </button>
+
+            <div className="runtime-status">
+              <span className="pulse-dot" />
+              Local API Ready
+            </div>
           </div>
         </header>
 
@@ -301,6 +343,7 @@ function App() {
         </section>
 
         {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
+        {copyMessage ? <div className="copy-banner">{copyMessage}</div> : null}
 
         <section className="mission-grid">
           <aside className="score-module">

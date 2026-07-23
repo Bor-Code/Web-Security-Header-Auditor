@@ -904,7 +904,7 @@
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    transform 160msms ease;
+    transform 160ms ease;
 }
 
 .batch-result:hover {
