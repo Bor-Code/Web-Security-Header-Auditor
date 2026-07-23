@@ -139,13 +139,19 @@ function App() {
     return Math.round(totalScore / batchResults.length).toString()
   }, [batchResults])
 
-  const batchLowestScore = useMemo(() => {
+  const batchWeakestResult = useMemo(() => {
     if (batchResults.length === 0) {
-      return '--'
+      return null
     }
 
-    return Math.min(...batchResults.map((scan) => scan.score)).toString()
+    return batchResults.reduce((weakestScan, scan) =>
+      scan.score < weakestScan.score ? scan : weakestScan,
+    )
   }, [batchResults])
+
+  const batchLowestScore = batchWeakestResult
+    ? batchWeakestResult.score.toString()
+    : '--'
 
   const batchHighPriorityCount = useMemo(
     () =>
@@ -211,7 +217,7 @@ function App() {
             <textarea
               value={batchUrls}
               onChange={(event) => setBatchUrls(event.target.value)}
-              placeholder="https://example.com&#10;https://www.iana.org"
+              placeholder={'https://example.com\nhttps://www.iana.org'}
               aria-label="Batch URLs"
             />
 
@@ -227,24 +233,57 @@ function App() {
           </div>
 
           {batchResults.length > 0 ? (
-            <div className="batch-summary">
-            <article>
-              <span>Completed</span>
-              <strong>{batchResults.length}</strong>
-            </article>
-            <article>
-              <span>Average Score</span>
-              <strong>{batchAverageScore}</strong>
-            </article>
-            <article>
-              <span>Lowest Score</span>
-              <strong>{batchLowestScore}</strong>
-            </article>
-            <article>
-              <span>High Priority</span>
-              <strong>{batchHighPriorityCount}</strong>
-            </article>
-          </div>
+            <>
+              <div className="batch-summary">
+                <article>
+                  <span>Completed</span>
+                  <strong>{batchResults.length}</strong>
+                </article>
+                <article>
+                  <span>Average Score</span>
+                  <strong>{batchAverageScore}</strong>
+                </article>
+                <article>
+                  <span>Lowest Score</span>
+                  <strong>{batchLowestScore}</strong>
+                </article>
+                <article>
+                  <span>High Priority</span>
+                  <strong>{batchHighPriorityCount}</strong>
+                </article>
+              </div>
+
+              {batchWeakestResult ? (
+                <div className="weakest-target">
+                  <div>
+                    <span>Weakest Target</span>
+                    <strong>{batchWeakestResult.final_url}</strong>
+                  </div>
+                  <b>{batchWeakestResult.score}</b>
+                  <small>{batchWeakestResult.grade}</small>
+                </div>
+              ) : null}
+
+              <div className="batch-results">
+                {batchResults.map((scan) => (
+                  <article
+                    className={
+                      batchWeakestResult?.checked_at_utc === scan.checked_at_utc
+                        ? 'batch-result weakest'
+                        : 'batch-result'
+                    }
+                    key={`${scan.final_url}-${scan.checked_at_utc}`}
+                  >
+                    <div>
+                      <strong>{scan.final_url}</strong>
+                      <span>{scan.priority}</span>
+                    </div>
+                    <b>{scan.score}</b>
+                    <small>{scan.grade}</small>
+                  </article>
+                ))}
+              </div>
+            </>
           ) : (
             <p className="empty-copy">
               Batch results will appear here after the first multi target run.
