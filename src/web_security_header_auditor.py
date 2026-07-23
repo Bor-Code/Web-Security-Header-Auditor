@@ -265,6 +265,14 @@ def build_review_notes(result: AuditResult) -> list[str]:
                 "Content-Security-Policy allows unsafe-eval; review whether dynamic code evaluation can be avoided."
             )
 
+        if finding.header == "X-Frame-Options":
+            normalized_frame_option = finding.value.strip().upper()
+
+            if normalized_frame_option not in {"DENY", "SAMEORIGIN"}:
+                notes.append(
+                    "X-Frame-Options has an uncommon value; review whether clickjacking protection is configured as intended."
+                )
+
     for cookie in result.cookie_findings:
         if not cookie.secure:
             notes.append(
