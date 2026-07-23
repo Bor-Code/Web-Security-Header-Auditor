@@ -438,7 +438,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         "present_header_count",
         "missing_header_count",
         "cookie_count",
-        "review_note_count",
+        "review_notes_count",
         "present_headers",
         "missing_headers",
     ]
@@ -450,6 +450,8 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         writer.writeheader()
 
         for result in sorted(results, key=lambda item: item.score):
+            review_notes = build_review_notes(result)
+
             writer.writerow(
                 {
                     "url": result.url,
@@ -460,7 +462,6 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                     "max_score": result.max_score,
                     "grade": result.grade,
                     "priority": result.priority,
-                    "priority": result.priority,
                     "present_header_count": len(
                         [finding for finding in result.header_findings if finding.present]
                     ),
@@ -468,7 +469,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                         [finding for finding in result.header_findings if not finding.present]
                     ),
                     "cookie_count": len(result.cookie_findings),
-                    "review_note_count": len(build_review_notes(result)),
+                    "review_notes_count": len(review_notes),
                     "present_headers": get_header_names_by_status(result, True),
                     "missing_headers": get_header_names_by_status(result, False),
                 }
