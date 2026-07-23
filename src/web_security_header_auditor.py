@@ -363,6 +363,10 @@ def save_batch_json_report(
         "total_urls": total_urls,
         "successful_audits": len(results),
         "failed_audits": len(failures),
+        "total_review_notes": sum(
+            len(build_review_notes(result))
+            for result in results
+        ),
         "average_score": get_average_score(results),
         "review_recommendation": get_batch_review_recommendation(results, failures),
         "grade_distribution": get_grade_distribution(results),
@@ -535,6 +539,11 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+    total_review_notes = sum(
+        len(build_review_notes(result))
+        for result in results
+    )
+    lines.append(f"Total Review Notes: {total_review_notes}")
     average_score = get_average_score(results)
 
     if average_score is None:
