@@ -32,6 +32,27 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [scanHistory, setScanHistory] = useState<AuditResponse[]>([])
+  const [batchUrls, setBatchUrls] = useState(
+    'https://example.com\nhttps://www.iana.org',
+  )
+  const [batchResults, setBatchResults] = useState<AuditResponse[]>([])
+  const [isBatchLoading, setIsBatchLoading] = useState(false)
+  const [batchProgress, setBatchProgress] = useState(0)
+
+  async function auditTarget(targetUrl: string) {
+    const response = await fetch(`${API_BASE_URL}/audit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: targetUrl }),
+    })
+
+    if (!response.ok) {
+      const errorPayload = await response.json()
+      throw new Error(errorPayload.detail ?? 'Audit request failed.')
+    }
+
+    return (await response.json()) as AuditResponse
+  }
 
   async function runAudit() {
     setIsLoading(true)
@@ -39,18 +60,7 @@ function App() {
     setResult(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/audit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      })
-
-      if (!response.ok) {
-        const errorPayload = await response.json()
-        throw new Error(errorPayload.detail ?? 'Audit request failed.')
-      }
-
-      const data = (await response.json()) as AuditResponse
+      const data = await auditTarget(url)
       setResult(data)
       setScanHistory((currentHistory) => [data, ...currentHistory].slice(0, 5))
     } catch (error) {
@@ -59,6 +69,44 @@ function App() {
       )
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function runBatchAudit() {
+    const targets = batchUrls
+      .split('\n')
+      .map((target) => target.trim())
+      .filter(Boolean)
+
+    if (targets.length === 0) {
+      setErrorMessage('Add at least one URL for batch scanning.')
+      return
+    }
+
+    setIsBatchLoading(true)
+    setErrorMessage('')
+    setBatchResults([])
+    setBatchProgress(0)
+
+    const completedScans: AuditResponse[] = []
+
+    try {
+      for (const target of targets) {
+        const data = await auditTarget(target)
+        completedScans.push(data)
+
+        setBatchResults([...completedScans])
+        setBatchProgress(completedScans.length)
+        setScanHistory((currentHistory) => [data, ...currentHistory].slice(0, 5))
+      }
+
+      setResult(completedScans[completedScans.length - 1] ?? null)
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Batch audit failed.',
+      )
+    } finally {
+      setIsBatchLoading(false)
     }
   }
 
@@ -73,6 +121,15 @@ function App() {
     [result],
   )
 
+  const batchTargets = useMemo(
+    () =>
+      batchUrls
+        .split('\n')
+        .map((target) => target.trim())
+        .filter(Boolean),
+    [batchUrls],
+  )
+
   const totalHeaders = presentHeaders + missingHeaders
 
   const postureLabel = result
@@ -82,37 +139,6 @@ function App() {
   return (
     <main className="console-shell">
       <section className="console-frame">
-      <section className="history-board">
-          <div className="board-heading">
-            <div>
-              <p>Recent Runs</p>
-              <h2>Scan History</h2>
-            </div>
-            <span>{scanHistory.length} stored locally</span>
-          </div>
-
-          {scanHistory.length > 0 ? (
-            <div className="history-list">
-              {scanHistory.map((scan) => (
-                <article
-                  className="history-item"
-                  key={`${scan.final_url}-${scan.checked_at_utc}`}
-                >
-                  <div>
-                    <strong>{scan.final_url}</strong>
-                    <span>{scan.priority}</span>
-                  </div>
-                  <b>{scan.score}</b>
-                  <small>{scan.grade}</small>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="empty-copy">
-              Completed scans will be listed here during this session.
-            </p>
-          )}
-        </section>
         <header className="console-topbar">
           <div className="brand-block">
             <span className="brand-mark">WSH</span>
@@ -139,9 +165,64 @@ function App() {
             />
           </div>
 
-          <button onClick={runAudit} disabled={isLoading}>
+          <button onClick={runAudit} disabled={isLoading || isBatchLoading}>
             {isLoading ? 'Scanning' : 'Run Audit'}
           </button>
+        </section>
+
+        <section className="batch-console">
+          <div className="board-heading">
+            <div>
+              <p>Batch Mode</p>
+              <h2>Multi Target Scan</h2>
+            </div>
+            <span>
+              {isBatchLoading
+                ? `${batchProgress} / ${batchTargets.length} complete`
+                : `${batchTargets.length} queued`}
+            </span>
+          </div>
+
+          <div className="batch-grid">
+            <textarea
+              value={batchUrls}
+              onChange={(event) => setBatchUrls(event.target.value)}
+              placeholder="https://example.com&#10;https://www.iana.org"
+              aria-label="Batch URLs"
+            />
+
+            <div className="batch-actions">
+              <button onClick={runBatchAudit} disabled={isLoading || isBatchLoading}>
+                {isBatchLoading ? 'Batch Running' : 'Run Batch'}
+              </button>
+              <p>
+                Add one URL per line. The GUI sends passive audit requests to the
+                local API.
+              </p>
+            </div>
+          </div>
+
+          {batchResults.length > 0 ? (
+            <div className="batch-results">
+              {batchResults.map((scan) => (
+                <article
+                  className="batch-result"
+                  key={`${scan.final_url}-${scan.checked_at_utc}`}
+                >
+                  <div>
+                    <strong>{scan.final_url}</strong>
+                    <span>{scan.priority}</span>
+                  </div>
+                  <b>{scan.score}</b>
+                  <small>{scan.grade}</small>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-copy">
+              Batch results will appear here after the first multi target run.
+            </p>
+          )}
         </section>
 
         {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
@@ -180,7 +261,11 @@ function App() {
               <strong>{result ? result.final_url : 'idle'}</strong>
             </div>
 
-            <div className={isLoading ? 'scan-lane is-running' : 'scan-lane'}>
+            <div
+              className={
+                isLoading || isBatchLoading ? 'scan-lane is-running' : 'scan-lane'
+              }
+            >
               <div className="lane-track">
                 <span />
                 <span />
@@ -214,6 +299,38 @@ function App() {
               </article>
             </div>
           </section>
+        </section>
+
+        <section className="history-board">
+          <div className="board-heading">
+            <div>
+              <p>Recent Runs</p>
+              <h2>Scan History</h2>
+            </div>
+            <span>{scanHistory.length} stored locally</span>
+          </div>
+
+          {scanHistory.length > 0 ? (
+            <div className="history-list">
+              {scanHistory.map((scan) => (
+                <article
+                  className="history-item"
+                  key={`${scan.final_url}-${scan.checked_at_utc}`}
+                >
+                  <div>
+                    <strong>{scan.final_url}</strong>
+                    <span>{scan.priority}</span>
+                  </div>
+                  <b>{scan.score}</b>
+                  <small>{scan.grade}</small>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-copy">
+              Completed scans will be listed here during this session.
+            </p>
+          )}
         </section>
 
         <section className="workbench">
