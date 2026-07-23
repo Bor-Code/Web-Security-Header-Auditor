@@ -130,6 +130,30 @@ function App() {
     [batchUrls],
   )
 
+  const batchAverageScore = useMemo(() => {
+    if (batchResults.length === 0) {
+      return '--'
+    }
+
+    const totalScore = batchResults.reduce((sum, scan) => sum + scan.score, 0)
+    return Math.round(totalScore / batchResults.length).toString()
+  }, [batchResults])
+
+  const batchLowestScore = useMemo(() => {
+    if (batchResults.length === 0) {
+      return '--'
+    }
+
+    return Math.min(...batchResults.map((scan) => scan.score)).toString()
+  }, [batchResults])
+
+  const batchHighPriorityCount = useMemo(
+    () =>
+      batchResults.filter((scan) => scan.priority === 'High review priority')
+        .length,
+    [batchResults],
+  )
+
   const totalHeaders = presentHeaders + missingHeaders
 
   const postureLabel = result
@@ -203,21 +227,24 @@ function App() {
           </div>
 
           {batchResults.length > 0 ? (
-            <div className="batch-results">
-              {batchResults.map((scan) => (
-                <article
-                  className="batch-result"
-                  key={`${scan.final_url}-${scan.checked_at_utc}`}
-                >
-                  <div>
-                    <strong>{scan.final_url}</strong>
-                    <span>{scan.priority}</span>
-                  </div>
-                  <b>{scan.score}</b>
-                  <small>{scan.grade}</small>
-                </article>
-              ))}
-            </div>
+            <div className="batch-summary">
+            <article>
+              <span>Completed</span>
+              <strong>{batchResults.length}</strong>
+            </article>
+            <article>
+              <span>Average Score</span>
+              <strong>{batchAverageScore}</strong>
+            </article>
+            <article>
+              <span>Lowest Score</span>
+              <strong>{batchLowestScore}</strong>
+            </article>
+            <article>
+              <span>High Priority</span>
+              <strong>{batchHighPriorityCount}</strong>
+            </article>
+          </div>
           ) : (
             <p className="empty-copy">
               Batch results will appear here after the first multi target run.

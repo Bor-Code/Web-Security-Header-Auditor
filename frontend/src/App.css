@@ -791,3 +791,40 @@
     justify-self: start;
   }
 }
+
+.batch-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.batch-summary article {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.56);
+}
+
+.batch-summary span {
+  display: block;
+  color: #8fa4c2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.batch-summary strong {
+  display: block;
+  margin-top: 8px;
+  color: #e5eefb;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .batch-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
