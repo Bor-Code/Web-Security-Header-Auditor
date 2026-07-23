@@ -250,6 +250,13 @@ def build_review_notes(result: AuditResult) -> list[str]:
             notes.append(
                 "Strict-Transport-Security has max-age=0; review whether HSTS is intentionally disabled."
             )
+        if (
+            finding.header == "Content-Security-Policy"
+            and "'unsafe-inline'" in normalized_value
+        ):
+            notes.append(
+                "Content-Security-Policy allows unsafe-inline; review whether inline script or style usage can be reduced."
+            )
 
     for cookie in result.cookie_findings:
         if not cookie.secure:
