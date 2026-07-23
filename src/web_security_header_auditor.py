@@ -364,36 +364,36 @@ def save_batch_json_report(
     output_path: Path,
 ) -> None:
     payload = {
-        "mode": "batch",
-        "total_urls": total_urls,
-        "successful_audits": len(results),
-        "failed_audits": len(failures),
-        "total_review_notes": sum(
-            get_review_notes_count(result)
-            for result in results
+    "mode": "batch",
+    "total_urls": total_urls,
+    "successful_audits": len(results),
+    "failed_audits": len(failures),
+    "total_review_notes": sum(
+        get_review_notes_count(result)
+        for result in results
         ),
-        "average_score": get_average_score(results),
-        "review_recommendation": get_batch_review_recommendation(results, failures),
-        "grade_distribution": get_grade_distribution(results),
-        "priority_distribution": get_priority_distribution(results),
-        "highest_score": summarize_score_result(
-            max(results, key=lambda result: result.score, default=None)
-        ),
-        "lowest_score": summarize_score_result(
-            min(results, key=lambda result: result.score, default=None)
-        ),
-        "results": [
-            result_to_json_payload(result)
-            for result in results
-        ],
-        "failures": [
-            {
-                "url": url,
-                "error": error_message,
-            }
-            for url, error_message in failures
-        ],
-    }
+    "average_score": get_average_score(results),
+    "review_recommendation": get_batch_review_recommendation(results, failures),
+    "grade_distribution": get_grade_distribution(results),
+    "priority_distribution": get_priority_distribution(results),
+    "highest_score": summarize_score_result(
+        max(results, key=lambda result: result.score, default=None)
+    ),
+    "lowest_score": summarize_score_result(
+        min(results, key=lambda result: result.score, default=None)
+    ),
+    "results": [
+        result_to_json_payload(result)
+        for result in results
+    ],
+    "failures": [
+        {
+            "url": url,
+            "error": error_message,
+        }
+        for url, error_message in failures
+    ],
+}
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
