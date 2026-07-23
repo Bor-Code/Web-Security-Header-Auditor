@@ -292,8 +292,14 @@ def build_review_notes(result: AuditResult) -> list[str]:
 
     return notes
 
+
+def get_review_notes_count(result: AuditResult) -> int:
+    return len(build_review_notes(result))
+
+
 def build_text_report(result: AuditResult) -> str:
     lines: list[str] = []
+    review_notes = build_review_notes(result)
 
     lines.append("Web Security Header Audit Report")
     lines.append("===============================")
@@ -306,6 +312,7 @@ def build_text_report(result: AuditResult) -> str:
     lines.append(f"Score: {result.score} / {result.max_score}")
     lines.append(f"Review Priority: {result.priority}")
     lines.append(f"Review Grade: {result.grade}")
+    lines.append(f"Review Notes Count: {len(review_notes)}")
 
     lines.append("")
     lines.append("Security Header Findings")
@@ -322,7 +329,7 @@ def build_text_report(result: AuditResult) -> str:
     lines.append("Review Notes")
     lines.append("------------")
 
-    for note in build_review_notes(result):
+    for note in review_notes:
         lines.append(f"- {note}")
 
     lines.append("")
@@ -346,8 +353,7 @@ def build_text_report(result: AuditResult) -> str:
     return "\n".join(lines)
 
 def save_json_report(result: AuditResult, output_path: Path) -> None:
-    payload = asdict(result)
-    payload["review_notes"] = build_review_notes(result)
+    payload = result_to_json_payload(result)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -362,6 +368,10 @@ def save_batch_json_report(
         "total_urls": total_urls,
         "successful_audits": len(results),
         "failed_audits": len(failures),
+        "total_review_notes": sum(
+            get_review_notes_count(result)
+            for result in results
+        ),
         "average_score": get_average_score(results),
         "review_recommendation": get_batch_review_recommendation(results, failures),
         "grade_distribution": get_grade_distribution(results),
@@ -373,10 +383,7 @@ def save_batch_json_report(
             min(results, key=lambda result: result.score, default=None)
         ),
         "results": [
-            {
-                **asdict(result),
-                "review_notes": build_review_notes(result),
-            }
+            result_to_json_payload(result)
             for result in results
         ],
         "failures": [
@@ -391,6 +398,13 @@ def save_batch_json_report(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+def result_to_json_payload(result: AuditResult) -> dict:
+    review_notes = build_review_notes(result)
+    return {
+        **asdict(result),
+        "review_notes": review_notes,
+        "review_notes_count": len(review_notes),
+    }
 
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -429,7 +443,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         "present_header_count",
         "missing_header_count",
         "cookie_count",
-        "review_note_count",
+        "review_notes_count",
         "present_headers",
         "missing_headers",
     ]
@@ -441,6 +455,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
         writer.writeheader()
 
         for result in sorted(results, key=lambda item: item.score):
+
             writer.writerow(
                 {
                     "url": result.url,
@@ -451,7 +466,6 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                     "max_score": result.max_score,
                     "grade": result.grade,
                     "priority": result.priority,
-                    "priority": result.priority,
                     "present_header_count": len(
                         [finding for finding in result.header_findings if finding.present]
                     ),
@@ -459,7 +473,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                         [finding for finding in result.header_findings if not finding.present]
                     ),
                     "cookie_count": len(result.cookie_findings),
-                    "review_note_count": len(build_review_notes(result)),
+                    "review_notes_count": get_review_notes_count(result),
                     "present_headers": get_header_names_by_status(result, True),
                     "missing_headers": get_header_names_by_status(result, False),
                 }
@@ -530,6 +544,11 @@ def build_batch_summary(
     lines.append(f"Total URLs: {total_urls}")
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
+    total_review_notes = sum(
+        len(build_review_notes(result))
+        for result in results
+    )
+    lines.append(f"Total Review Notes: {total_review_notes}")
     average_score = get_average_score(results)
 
     if average_score is None:
