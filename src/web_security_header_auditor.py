@@ -294,6 +294,7 @@ def build_review_notes(result: AuditResult) -> list[str]:
 
 def build_text_report(result: AuditResult) -> str:
     lines: list[str] = []
+    review_notes = build_review_notes(result)
 
     lines.append("Web Security Header Audit Report")
     lines.append("===============================")
@@ -306,6 +307,7 @@ def build_text_report(result: AuditResult) -> str:
     lines.append(f"Score: {result.score} / {result.max_score}")
     lines.append(f"Review Priority: {result.priority}")
     lines.append(f"Review Grade: {result.grade}")
+    lines.append(f"Review Notes Count: {len(review_notes)}")
 
     lines.append("")
     lines.append("Security Header Findings")
@@ -322,7 +324,7 @@ def build_text_report(result: AuditResult) -> str:
     lines.append("Review Notes")
     lines.append("------------")
 
-    for note in build_review_notes(result):
+    for note in review_notes:
         lines.append(f"- {note}")
 
     lines.append("")
@@ -347,7 +349,9 @@ def build_text_report(result: AuditResult) -> str:
 
 def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload = asdict(result)
-    payload["review_notes"] = build_review_notes(result)
+    review_notes = build_review_notes(result)
+    payload["review_notes"] = review_notes
+    payload["review_notes_count"] = len(review_notes)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
