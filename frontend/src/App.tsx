@@ -261,7 +261,7 @@ async function copyAuditSummary() {
 
             <div className="runtime-status">
               <span className="pulse-dot" />
-              Local API Ready
+              API Online
             </div>
           </div>
         </header>
