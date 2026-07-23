@@ -89,11 +89,22 @@ def normalize_url(url: str) -> str:
 
     return url
 
+
 def validate_timeout(timeout: int) -> int:
     if timeout <= 0:
         raise ValueError("Timeout must be greater than zero.")
 
     return timeout
+
+
+def validate_score_threshold(threshold: int | None) -> int | None:
+    if threshold is None:
+        return None
+
+    if threshold < 0 or threshold > 100:
+        raise ValueError("Fail-below threshold must be between 0 and 100.")
+
+    return threshold
 
 
 def get_priority(score: int) -> str:
@@ -102,6 +113,7 @@ def get_priority(score: int) -> str:
     if score >= 50:
         return "Needs review"
     return "High review priority"
+
 
 def get_grade(score: int) -> str:
     if score >= 90:
@@ -352,10 +364,12 @@ def build_text_report(result: AuditResult) -> str:
 
     return "\n".join(lines)
 
+
 def save_json_report(result: AuditResult, output_path: Path) -> None:
     payload = result_to_json_payload(result)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
 
 def save_batch_json_report(
     results: list[AuditResult],
@@ -398,6 +412,7 @@ def save_batch_json_report(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+
 def result_to_json_payload(result: AuditResult) -> dict:
     review_notes = build_review_notes(result)
     return {
@@ -406,9 +421,11 @@ def result_to_json_payload(result: AuditResult) -> dict:
         "review_notes_count": len(review_notes),
     }
 
+
 def save_text_report(result: AuditResult, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(build_text_report(result), encoding="utf-8")
+
 
 def save_batch_text_report(
     results: list[AuditResult],
@@ -421,6 +438,7 @@ def save_batch_text_report(
         build_batch_text_report(results, failures, total_urls),
         encoding="utf-8",
     )
+
 
 def get_header_names_by_status(result: AuditResult, present: bool) -> str:
     return "; ".join(
@@ -480,6 +498,7 @@ def save_csv_report(results: list[AuditResult], output_path: Path) -> None:
                 }
             )
 
+
 def load_urls_file(urls_path: Path) -> list[str]:
     urls: list[str] = []
 
@@ -493,12 +512,15 @@ def load_urls_file(urls_path: Path) -> list[str]:
 
     return urls
 
+
 def get_grade_distribution(results: list[AuditResult]) -> dict[str, int]:
     return dict(sorted(Counter(result.grade for result in results).items()))
+
 
 def get_priority_distribution(results: list[AuditResult]) -> dict[str, int]:
     priority_counts = Counter(result.priority for result in results)
     return dict(sorted(priority_counts.items()))
+
 
 def get_average_score(results: list[AuditResult]) -> float | None:
     if not results:
@@ -508,6 +530,7 @@ def get_average_score(results: list[AuditResult]) -> float | None:
         sum(result.score for result in results) / len(results),
         2,
     )
+
 
 def get_batch_review_recommendation(results: list[AuditResult], failures: list[tuple[str, str]]) -> str:
     if failures and not results:
@@ -521,6 +544,7 @@ def get_batch_review_recommendation(results: list[AuditResult], failures: list[t
 
     return "Start with the lowest score and high priority URLs first."
 
+
 def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] | None:
     if result is None:
         return None
@@ -532,6 +556,7 @@ def summarize_score_result(result: AuditResult | None) -> dict[str, str | int] |
         "grade": result.grade,
         "priority": result.priority,
     }
+
 
 def build_batch_summary(
     results: list[AuditResult],
@@ -546,7 +571,7 @@ def build_batch_summary(
     lines.append(f"Successful Audits: {len(results)}")
     lines.append(f"Failed Audits: {len(failures)}")
     total_review_notes = sum(
-        len(build_review_notes(result))
+        get_review_notes_count(result)
         for result in results
     )
     lines.append(f"Total Review Notes: {total_review_notes}")
@@ -607,6 +632,7 @@ def build_batch_summary(
 
     return "\n".join(lines)
 
+
 def build_batch_text_report(
     results: list[AuditResult],
     failures: list[tuple[str, str]],
@@ -631,6 +657,7 @@ def build_batch_text_report(
 
     return "\n".join(lines)
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Passive web security header auditor for authorized URLs."
@@ -639,6 +666,11 @@ def main() -> None:
     input_group.add_argument("--url", help="Single URL to review.")
     input_group.add_argument("--urls-file", help="Text file containing URLs to review.")
     parser.add_argument("--timeout", type=int, default=10, help="Request timeout in seconds.")
+    parser.add_argument(
+        "--fail-below",
+        type=int,
+        help="Exit with code 1 when an audit score is below this value.",
+    )
     parser.add_argument("--json-out", help="Optional JSON report output path.")
     parser.add_argument("--text-out", help="Optional text report output path.")
     parser.add_argument("--csv-out", help="Optional CSV report output path.")
@@ -647,6 +679,7 @@ def main() -> None:
 
     try:
         timeout = validate_timeout(args.timeout)
+        fail_below = validate_score_threshold(args.fail_below)
     except ValueError as error:
         print(f"Error: {error}")
         return
@@ -704,6 +737,9 @@ def main() -> None:
 
     if args.csv_out:
         save_csv_report([result], Path(args.csv_out))
+
+    if fail_below is not None and result.score < fail_below:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
