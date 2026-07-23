@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import './App.css'
 
 type HeaderFinding = {
@@ -27,6 +28,8 @@ type AuditResponse = {
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
 function App() {
+  const { t, i18n } = useTranslation()
+
   const [url, setUrl] = useState('https://example.com')
   const [result, setResult] = useState<AuditResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -39,6 +42,10 @@ function App() {
   const [batchResults, setBatchResults] = useState<AuditResponse[]>([])
   const [isBatchLoading, setIsBatchLoading] = useState(false)
   const [batchProgress, setBatchProgress] = useState(0)
+
+  function toggleLanguage() {
+    void i18n.changeLanguage(i18n.language === 'en' ? 'tr' : 'en')
+  }
 
   async function auditTarget(targetUrl: string) {
     const response = await fetch(`${API_BASE_URL}/audit`, {
@@ -198,27 +205,15 @@ function App() {
     return summaryLines.join('\n')
   }
 
-async function copyAuditSummary() {
-  if (!result) {
-    setCopyMessage('Run or select an audit first.')
-    return
-  }
-
-  await navigator.clipboard.writeText(buildAuditSummary(result))
-  setCopyMessage('Summary copied.')
-}
-
-  useEffect(() => {
-    if (!copyMessage) {
+  async function copyAuditSummary() {
+    if (!result) {
+      setCopyMessage('Run or select an audit first.')
       return
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setCopyMessage('')
-    }, 2200)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [copyMessage])
+    await navigator.clipboard.writeText(buildAuditSummary(result))
+    setCopyMessage('Summary copied.')
+  }
 
   useEffect(() => {
     if (!copyMessage) {
@@ -236,7 +231,7 @@ async function copyAuditSummary() {
 
   const postureLabel = result
     ? `${result.priority} / Grade ${result.grade}`
-    : 'Awaiting first scan'
+    : t('app.awaiting')
 
   return (
     <main className="console-shell">
@@ -245,30 +240,34 @@ async function copyAuditSummary() {
           <div className="brand-block">
             <span className="brand-mark">WSH</span>
             <div>
-              <p>Passive Header Automation</p>
-              <h1>Web Security Header Auditor</h1>
+              <p>{t('app.eyebrow')}</p>
+              <h1>{t('app.title')}</h1>
             </div>
           </div>
 
-            <div className="topbar-actions">
+          <div className="topbar-actions">
+            <button className="language-toggle" onClick={toggleLanguage}>
+              {i18n.language === 'en' ? 'TR' : 'EN'}
+            </button>
+
             <button
               className="summary-copy-button"
               onClick={copyAuditSummary}
               disabled={!result}
             >
-              Copy Summary
+              {t('app.copySummary')}
             </button>
 
             <div className="runtime-status">
               <span className="pulse-dot" />
-              Local API Ready
+              {t('app.api')}
             </div>
           </div>
         </header>
 
         <section className="command-strip">
           <div className="command-input">
-            <span>target</span>
+            <span>{t('app.target')}</span>
             <input
               value={url}
               onChange={(event) => setUrl(event.target.value)}
@@ -278,20 +277,20 @@ async function copyAuditSummary() {
           </div>
 
           <button onClick={runAudit} disabled={isLoading || isBatchLoading}>
-            {isLoading ? 'Scanning' : 'Run Audit'}
+            {isLoading ? t('app.scanning') : t('app.runAudit')}
           </button>
         </section>
 
         <section className="batch-console">
           <div className="board-heading">
             <div>
-              <p>Batch Mode</p>
-              <h2>Multi Target Scan</h2>
+              <p>{t('app.batchMode')}</p>
+              <h2>{t('app.batchTitle')}</h2>
             </div>
             <span>
               {isBatchLoading
-                ? `${batchProgress} / ${batchTargets.length} complete`
-                : `${batchTargets.length} queued`}
+                ? `${batchProgress} / ${batchTargets.length} ${t('app.complete')}`
+                : `${batchTargets.length} ${t('app.queued')}`}
             </span>
           </div>
 
@@ -305,12 +304,9 @@ async function copyAuditSummary() {
 
             <div className="batch-actions">
               <button onClick={runBatchAudit} disabled={isLoading || isBatchLoading}>
-                {isBatchLoading ? 'Batch Running' : 'Run Batch'}
+                {isBatchLoading ? t('app.batchRunning') : t('app.runBatch')}
               </button>
-              <p>
-                Add one URL per line. The GUI sends passive audit requests to the
-                local API.
-              </p>
+              <p>{t('app.batchHelp')}</p>
             </div>
           </div>
 
@@ -318,19 +314,19 @@ async function copyAuditSummary() {
             <>
               <div className="batch-summary">
                 <article>
-                  <span>Completed</span>
+                  <span>{t('app.completed')}</span>
                   <strong>{batchResults.length}</strong>
                 </article>
                 <article>
-                  <span>Average Score</span>
+                  <span>{t('app.averageScore')}</span>
                   <strong>{batchAverageScore}</strong>
                 </article>
                 <article>
-                  <span>Lowest Score</span>
+                  <span>{t('app.lowestScore')}</span>
                   <strong>{batchLowestScore}</strong>
                 </article>
                 <article>
-                  <span>High Priority</span>
+                  <span>{t('app.highPriority')}</span>
                   <strong>{batchHighPriorityCount}</strong>
                 </article>
               </div>
@@ -338,7 +334,7 @@ async function copyAuditSummary() {
               {batchWeakestResult ? (
                 <div className="weakest-target">
                   <div>
-                    <span>Weakest Target</span>
+                    <span>{t('app.weakestTarget')}</span>
                     <strong>{batchWeakestResult.final_url}</strong>
                   </div>
                   <b>{batchWeakestResult.score}</b>
@@ -349,7 +345,7 @@ async function copyAuditSummary() {
               <div className="batch-results">
                 {batchResults.map((scan) => (
                   <article
-                  className={getBatchResultClassName(scan)}
+                    className={getBatchResultClassName(scan)}
                     key={`${scan.final_url}-${scan.checked_at_utc}`}
                     onClick={() => setResult(scan)}
                   >
@@ -364,9 +360,7 @@ async function copyAuditSummary() {
               </div>
             </>
           ) : (
-            <p className="empty-copy">
-              Batch results will appear here after the first multi target run.
-            </p>
+            <p className="empty-copy">{t('app.batchEmpty')}</p>
           )}
         </section>
 
@@ -376,7 +370,7 @@ async function copyAuditSummary() {
         <section className="mission-grid">
           <aside className="score-module">
             <div className="module-heading">
-              <span>posture score</span>
+              <span>{t('app.postureScore')}</span>
               <strong>{result ? result.grade : '--'}</strong>
             </div>
 
@@ -403,8 +397,8 @@ async function copyAuditSummary() {
 
           <section className="scan-module">
             <div className="module-heading">
-              <span>scan pipeline</span>
-              <strong>{result ? result.final_url : 'idle'}</strong>
+              <span>{t('app.scanPipeline')}</span>
+              <strong>{result ? result.final_url : t('app.idle')}</strong>
             </div>
 
             <div
@@ -419,28 +413,28 @@ async function copyAuditSummary() {
                 <span />
               </div>
               <div className="lane-labels">
-                <span>Resolve URL</span>
-                <span>Fetch Headers</span>
-                <span>Score Posture</span>
-                <span>Build Notes</span>
+                <span>{t('app.resolveUrl')}</span>
+                <span>{t('app.fetchHeaders')}</span>
+                <span>{t('app.scorePosture')}</span>
+                <span>{t('app.buildNotes')}</span>
               </div>
             </div>
 
             <div className="control-grid">
               <article>
-                <span>Present</span>
+                <span>{t('app.present')}</span>
                 <strong>{presentHeaders}</strong>
               </article>
               <article>
-                <span>Missing</span>
+                <span>{t('app.missing')}</span>
                 <strong>{missingHeaders}</strong>
               </article>
               <article>
-                <span>Total</span>
+                <span>{t('app.total')}</span>
                 <strong>{totalHeaders || '--'}</strong>
               </article>
               <article>
-                <span>Notes</span>
+                <span>{t('app.notes')}</span>
                 <strong>{result ? result.review_notes_count : '--'}</strong>
               </article>
             </div>
@@ -450,10 +444,12 @@ async function copyAuditSummary() {
         <section className="history-board">
           <div className="board-heading">
             <div>
-              <p>Recent Runs</p>
-              <h2>Scan History</h2>
+              <p>{t('app.recentRuns')}</p>
+              <h2>{t('app.scanHistory')}</h2>
             </div>
-            <span>{scanHistory.length} stored locally</span>
+            <span>
+              {scanHistory.length} {t('app.storedLocally')}
+            </span>
           </div>
 
           {scanHistory.length > 0 ? (
@@ -473,9 +469,7 @@ async function copyAuditSummary() {
               ))}
             </div>
           ) : (
-            <p className="empty-copy">
-              Completed scans will be listed here during this session.
-            </p>
+            <p className="empty-copy">{t('app.historyEmpty')}</p>
           )}
         </section>
 
@@ -483,10 +477,14 @@ async function copyAuditSummary() {
           <div className="headers-board">
             <div className="board-heading">
               <div>
-                <p>Security Controls</p>
-                <h2>Header Matrix</h2>
+                <p>{t('app.securityControls')}</p>
+                <h2>{t('app.headerMatrix')}</h2>
               </div>
-              <span>{result ? `${totalHeaders} controls checked` : 'No scan data'}</span>
+              <span>
+                {result
+                  ? `${totalHeaders} ${t('app.controlsChecked')}`
+                  : t('app.noScanData')}
+              </span>
             </div>
 
             <div className="header-matrix">
@@ -497,7 +495,9 @@ async function copyAuditSummary() {
                     key={finding.header}
                   >
                     <div className="control-card-top">
-                      <span>{finding.present ? 'active' : 'missing'}</span>
+                      <span>
+                        {finding.present ? t('app.present') : t('app.missing')}
+                      </span>
                       <strong>{finding.points} pts</strong>
                     </div>
                     <h3>{finding.header}</h3>
@@ -505,9 +505,7 @@ async function copyAuditSummary() {
                   </article>
                 ))
               ) : (
-                <div className="matrix-empty">
-                  Enter a target and run an audit to populate the control matrix.
-                </div>
+                <div className="matrix-empty">{t('app.matrixEmpty')}</div>
               )}
             </div>
           </div>
@@ -515,10 +513,14 @@ async function copyAuditSummary() {
           <aside className="triage-board">
             <div className="board-heading">
               <div>
-                <p>Review Queue</p>
-                <h2>Analyst Notes</h2>
+                <p>{t('app.reviewQueue')}</p>
+                <h2>{t('app.analystNotes')}</h2>
               </div>
-              <span>{result ? `${result.review_notes_count} items` : 'idle'}</span>
+              <span>
+                {result
+                  ? `${result.review_notes_count} ${t('app.items')}`
+                  : t('app.idle')}
+              </span>
             </div>
 
             {result ? (
@@ -531,9 +533,7 @@ async function copyAuditSummary() {
                 ))}
               </ol>
             ) : (
-              <p className="empty-copy">
-                Findings and remediation notes will appear here after the scan.
-              </p>
+              <p className="empty-copy">{t('app.notesEmpty')}</p>
             )}
           </aside>
         </section>
