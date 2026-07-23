@@ -682,7 +682,7 @@ def main() -> None:
         fail_below = validate_score_threshold(args.fail_below)
     except ValueError as error:
         print(f"Error: {error}")
-        return
+        raise SystemExit(2)
 
     if args.urls_file:
         urls = load_urls_file(Path(args.urls_file))
