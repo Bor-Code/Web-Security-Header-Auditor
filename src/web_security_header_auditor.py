@@ -237,6 +237,42 @@ def build_review_notes(result: AuditResult) -> list[str]:
                 "Permissions-Policy is missing; review whether browser feature access should be restricted."
             )
 
+    for finding in result.header_findings:
+        if not finding.present or not finding.value:
+            continue
+
+        normalized_value = finding.value.lower().replace(" ", "")
+
+        if (
+            finding.header == "Strict-Transport-Security"
+            and "max-age=0" in normalized_value
+        ):
+            notes.append(
+                "Strict-Transport-Security has max-age=0; review whether HSTS is intentionally disabled."
+            )
+        if (
+            finding.header == "Content-Security-Policy"
+            and "'unsafe-inline'" in normalized_value
+        ):
+            notes.append(
+                "Content-Security-Policy allows unsafe-inline; review whether inline script or style usage can be reduced."
+            )
+        if (
+            finding.header == "Content-Security-Policy"
+            and "'unsafe-eval'" in normalized_value
+        ):
+            notes.append(
+                "Content-Security-Policy allows unsafe-eval; review whether dynamic code evaluation can be avoided."
+            )
+
+        if finding.header == "X-Frame-Options":
+            normalized_frame_option = finding.value.strip().upper()
+
+            if normalized_frame_option not in {"DENY", "SAMEORIGIN"}:
+                notes.append(
+                    "X-Frame-Options has an uncommon value; review whether clickjacking protection is configured as intended."
+                )
+
     for cookie in result.cookie_findings:
         if not cookie.secure:
             notes.append(
