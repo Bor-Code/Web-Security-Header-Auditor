@@ -257,6 +257,13 @@ def build_review_notes(result: AuditResult) -> list[str]:
             notes.append(
                 "Content-Security-Policy allows unsafe-inline; review whether inline script or style usage can be reduced."
             )
+        if (
+            finding.header == "Content-Security-Policy"
+            and "'unsafe-eval'" in normalized_value
+        ):
+            notes.append(
+                "Content-Security-Policy allows unsafe-eval; review whether dynamic code evaluation can be avoided."
+            )
 
     for cookie in result.cookie_findings:
         if not cookie.secure:
