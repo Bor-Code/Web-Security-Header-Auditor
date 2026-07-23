@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 type HeaderFinding = {
@@ -203,6 +203,30 @@ async function copyAuditSummary() {
   await navigator.clipboard.writeText(buildAuditSummary(result))
   setCopyMessage('Summary copied.')
 }
+
+  useEffect(() => {
+    if (!copyMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyMessage('')
+    }, 2200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [copyMessage])
+
+  useEffect(() => {
+    if (!copyMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyMessage('')
+    }, 2200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [copyMessage])
 
   const totalHeaders = presentHeaders + missingHeaders
 
