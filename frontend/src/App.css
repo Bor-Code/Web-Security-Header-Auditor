@@ -675,3 +675,245 @@
   background: #67e8f9;
   font-weight: 950;
 }
+
+.batch-console {
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.72));
+}
+
+.batch-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.batch-grid textarea {
+  min-height: 116px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.72);
+  color: #e5eefb;
+  font: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+
+.batch-grid textarea:focus {
+  border-color: rgba(34, 211, 238, 0.52);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+}
+
+.batch-actions {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.batch-actions p {
+  margin: 0;
+  color: #8fa4c2;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.batch-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.batch-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 56px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.batch-result div {
+  min-width: 0;
+}
+
+.batch-result strong,
+.batch-result span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-result strong {
+  color: #e5eefb;
+  font-size: 0.94rem;
+}
+
+.batch-result span {
+  margin-top: 4px;
+  color: #8fa4c2;
+  font-size: 0.82rem;
+}
+
+.batch-result b,
+.batch-result small {
+  justify-self: end;
+}
+
+.batch-result b {
+  color: #22d3ee;
+  font-size: 1.2rem;
+}
+
+.batch-result small {
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #dff7ff;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .batch-grid,
+  .batch-result {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-result b,
+  .batch-result small {
+    justify-self: start;
+  }
+}
+
+.batch-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.batch-summary article {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.56);
+}
+
+.batch-summary span {
+  display: block;
+  color: #8fa4c2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.batch-summary strong {
+  display: block;
+  margin-top: 8px;
+  color: #e5eefb;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .batch-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.weakest-target {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 56px;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  border: 1px solid rgba(251, 146, 60, 0.32);
+  border-radius: 8px;
+  padding: 12px;
+  background:
+    linear-gradient(90deg, rgba(251, 146, 60, 0.16), rgba(15, 23, 42, 0.72));
+}
+
+.weakest-target div {
+  min-width: 0;
+}
+
+.weakest-target span {
+  display: block;
+  color: #fdba74;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.weakest-target strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #fff7ed;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weakest-target b,
+.weakest-target small {
+  justify-self: end;
+}
+
+.weakest-target b {
+  color: #fb923c;
+  font-size: 1.25rem;
+}
+
+.weakest-target small {
+  border: 1px solid rgba(251, 146, 60, 0.34);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #ffedd5;
+  font-weight: 900;
+}
+
+.batch-result.weakest {
+  border-color: rgba(251, 146, 60, 0.34);
+  background:
+    linear-gradient(90deg, rgba(251, 146, 60, 0.12), rgba(15, 23, 42, 0.72));
+}
+
+@media (max-width: 760px) {
+  .weakest-target {
+    grid-template-columns: 1fr;
+  }
+
+  .weakest-target b,
+  .weakest-target small {
+    justify-self: start;
+  }
+}
+
+.batch-result {
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160msms ease;
+}
+
+.batch-result:hover {
+  border-color: rgba(34, 211, 238, 0.36);
+  transform: translateY(-1px);
+}
+
+.batch-result.selected {
+  border-color: rgba(34, 211, 238, 0.58);
+  background:
+    linear-gradient(90deg, rgba(34, 211, 238, 0.14), rgba(15, 23, 42, 0.72));
+}
