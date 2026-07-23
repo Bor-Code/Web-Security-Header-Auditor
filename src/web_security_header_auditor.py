@@ -237,6 +237,20 @@ def build_review_notes(result: AuditResult) -> list[str]:
                 "Permissions-Policy is missing; review whether browser feature access should be restricted."
             )
 
+    for finding in result.header_findings:
+        if not finding.present or not finding.value:
+            continue
+
+        normalized_value = finding.value.lower().replace(" ", "")
+
+        if (
+            finding.header == "Strict-Transport-Security"
+            and "max-age=0" in normalized_value
+        ):
+            notes.append(
+                "Strict-Transport-Security has max-age=0; review whether HSTS is intentionally disabled."
+            )
+
     for cookie in result.cookie_findings:
         if not cookie.secure:
             notes.append(
