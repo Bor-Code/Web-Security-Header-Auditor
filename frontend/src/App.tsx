@@ -21,6 +21,7 @@ type AuditResponse = {
   header_findings: HeaderFinding[]
   review_notes: string[]
   review_notes_count: number
+  checked_at_utc: string
 }
 
 const API_BASE_URL = 'http://127.0.0.1:8000'
@@ -30,6 +31,7 @@ function App() {
   const [result, setResult] = useState<AuditResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [scanHistory, setScanHistory] = useState<AuditResponse[]>([])
 
   async function runAudit() {
     setIsLoading(true)
@@ -48,7 +50,9 @@ function App() {
         throw new Error(errorPayload.detail ?? 'Audit request failed.')
       }
 
-      setResult((await response.json()) as AuditResponse)
+      const data = (await response.json()) as AuditResponse
+      setResult(data)
+      setScanHistory((currentHistory) => [data, ...currentHistory].slice(0, 5))
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Audit request failed.',
@@ -78,6 +82,37 @@ function App() {
   return (
     <main className="console-shell">
       <section className="console-frame">
+      <section className="history-board">
+          <div className="board-heading">
+            <div>
+              <p>Recent Runs</p>
+              <h2>Scan History</h2>
+            </div>
+            <span>{scanHistory.length} stored locally</span>
+          </div>
+
+          {scanHistory.length > 0 ? (
+            <div className="history-list">
+              {scanHistory.map((scan) => (
+                <article
+                  className="history-item"
+                  key={`${scan.final_url}-${scan.checked_at_utc}`}
+                >
+                  <div>
+                    <strong>{scan.final_url}</strong>
+                    <span>{scan.priority}</span>
+                  </div>
+                  <b>{scan.score}</b>
+                  <small>{scan.grade}</small>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-copy">
+              Completed scans will be listed here during this session.
+            </p>
+          )}
+        </section>
         <header className="console-topbar">
           <div className="brand-block">
             <span className="brand-mark">WSH</span>
