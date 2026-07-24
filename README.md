@@ -2,6 +2,8 @@
 
 Passive security review tool for auditing HTTP security headers, cookie flags, score posture, and remediation notes.
 
+First of all, here is the Netlify link for the project: https://web-security-header-auditor.netlify.app/
+
 This project started as a CLI-based auditor and now includes:
 
 - Python CLI
