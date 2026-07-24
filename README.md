@@ -1,85 +1,96 @@
-Web Security Header Auditor
+# Web Security Header Auditor
 
-Web Security Header Auditor is a passive security review tool for inspecting HTTP security headers, cookie flags, score posture, and remediation notes. It can be used from the command line, through a FastAPI API, or from a React GUI.
+Passive security review tool for auditing HTTP security headers, cookie flags, score posture, and remediation notes.
 
-The tool does not exploit, fuzz, brute force, or send attack payloads. It only reviews HTTP response data returned by the target server.
+This project started as a CLI-based auditor and now includes:
 
-Features
+- Python CLI
+- FastAPI audit API
+- React + TypeScript GUI
+- Single URL scan
+- Batch URL scan
+- JSON and CSV export
+- Scan history
+- TR/EN interface support
+- Passive, non-invasive security review workflow
 
-Passive HTTP response security header review
+> Safety note: This tool only reviews HTTP response data. It does not exploit, fuzz, brute force, bypass authentication, or send attack payloads.
 
-HTTPS usage detection
+---
 
-Security header scoring with grade and review priority
+## GUI Preview
 
-Header value warnings for risky or uncommon configurations
+### Batch Scan and Report Actions
 
-Cookie flag checks for Secure, HttpOnly, and SameSite
+The GUI supports target input, batch scanning, report actions, language switching, and API status display.
 
-Review notes for missing or risky headers
+![GUI batch overview](docs/screenshots/gui-batch-overview.png)
 
-Single URL and batch URL audits
+### Score, Pipeline, and Scan History
 
-Text, JSON, and CSV report output
+Each audit result includes score, grade, HTTPS usage, status code, pipeline view, and local scan history.
 
-Optional fail-below score threshold for CI-style usage
+![GUI score and history](docs/screenshots/gui-score-history.png)
 
-FastAPI API with /health and /audit
+### Header Matrix and Analyst Notes
 
-React GUI with single scan, batch scan, scan history, report actions, and TR/EN language support
+The header matrix shows present and missing controls. Analyst notes explain which headers should be reviewed.
 
-Reviewed Security Controls
+![GUI header matrix](docs/screenshots/gui-header-matrix.png)
 
-Control
+---
 
-Purpose
+## Features
 
-Content-Security-Policy
+### CLI
 
-Helps reduce cross-site scripting and content injection risk.
+- Audit a single URL
+- Audit multiple URLs from a file
+- Generate text reports
+- Generate JSON reports
+- Generate CSV reports
+- Use fail-below thresholds for CI-style checks
 
-Strict-Transport-Security
+### API
 
-Helps enforce HTTPS usage after the first trusted visit.
+- FastAPI backend
+- `/health` endpoint
+- `/audit` endpoint
+- OpenAPI documentation at `/docs`
 
-X-Frame-Options
+### GUI
 
-Helps reduce clickjacking risk.
+- Single target scan
+- Multi-target batch scan
+- Score and grade display
+- Risk-colored severity visuals
+- Header matrix
+- Analyst review notes
+- Scan history
+- Weakest target highlight
+- Copy summary action
+- Download JSON action
+- Download CSV action
+- English and Turkish UI mode
 
-X-Content-Type-Options
+---
 
-Helps prevent MIME type sniffing.
+## Security Headers Checked
 
-Referrer-Policy
+| Header | Purpose |
+| --- | --- |
+| `Content-Security-Policy` | Helps reduce cross-site scripting and content injection risk. |
+| `Strict-Transport-Security` | Helps enforce HTTPS after the first trusted visit. |
+| `X-Frame-Options` | Helps reduce clickjacking risk. |
+| `X-Content-Type-Options` | Helps prevent MIME type sniffing. |
+| `Referrer-Policy` | Controls how much referrer information is shared. |
+| `Permissions-Policy` | Restricts browser features available to the page. |
 
-Controls how much referrer information is shared.
+---
 
-Permissions-Policy
+## Project Structure
 
-Restricts browser features available to the page.
-
-Screenshots
-
-GUI Batch Scan and Report Actions
-
-The GUI supports single URL scans, batch target scanning, local scan history, JSON export, CSV export, and copyable summaries.
-
-
-
-Score, Pipeline, and Scan History
-
-Audit results include a posture score, grade, status code, HTTPS status, checked control count, review notes count, and locally stored scan history.
-
-
-
-Header Matrix and Analyst Notes
-
-The header matrix shows present and missing controls with status badges. The review queue provides analyst-friendly remediation notes.
-
-
-
-Project Structure
-
+```text
 .
 ├── frontend/
 │   ├── src/
@@ -88,177 +99,174 @@ Project Structure
 │   │   ├── i18n.ts
 │   │   └── main.tsx
 │   └── package.json
-├── sample-inputs/
-│   └── urls.txt
 ├── src/
 │   ├── web_security_header_auditor.py
 │   └── web_security_header_auditor_api.py
+├── sample-inputs/
+│   └── urls.txt
+├── docs/
+│   └── screenshots/
+│       ├── gui-batch-overview.png
+│       ├── gui-score-history.png
+│       └── gui-header-matrix.png
 ├── requirements.txt
 └── README.md
+```
 
-Requirements
+---
 
-Python 3.11+
-
-Node.js 20+
-
-npm
+## Installation
 
 Install Python dependencies:
 
+```powershell
 python -m pip install -r .\requirements.txt
+```
 
 Install frontend dependencies:
 
+```powershell
 npm --prefix .\frontend install
+```
 
-CLI Usage
+---
 
-Run a single URL audit:
+## CLI Usage
 
+Run a single audit:
+
+```powershell
 python .\src\web_security_header_auditor.py --url https://example.com
+```
+
+Run a batch audit:
+
+```powershell
+python .\src\web_security_header_auditor.py --urls-file .\sample-inputs\urls.txt
+```
 
 Write JSON output:
 
+```powershell
 python .\src\web_security_header_auditor.py --url https://example.com --json-out .\reports\example.json
+```
 
 Write CSV output:
 
+```powershell
 python .\src\web_security_header_auditor.py --url https://example.com --csv-out .\reports\example.csv
+```
 
-Run batch audits from a file:
+Use a score threshold:
 
-python .\src\web_security_header_auditor.py --urls-file .\sample-inputs\urls.txt --json-out .\reports\batch.json --csv-out .\reports\batch.csv
-
-Fail the process when the score is below a threshold:
-
+```powershell
 python .\src\web_security_header_auditor.py --url https://example.com --fail-below 80
+```
 
-API Usage
+---
+
+## API Usage
 
 Start the API:
 
+```powershell
 $env:PYTHONPATH = ".\src"
 python -m uvicorn web_security_header_auditor_api:app --reload
+```
 
 Health check:
 
+```powershell
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/health
+```
 
 Run an audit:
 
+```powershell
 Invoke-RestMethod `
   -Method Post `
   -Uri http://127.0.0.1:8000/audit `
   -ContentType "application/json" `
   -Body '{"url":"https://example.com"}'
+```
 
-OpenAPI documentation is available while the API is running:
+Open API docs:
 
+```text
 http://127.0.0.1:8000/docs
+```
 
-GUI Usage
+---
 
-Start the backend API in one terminal:
+## GUI Usage
 
+Start the API in one terminal:
+
+```powershell
 $env:PYTHONPATH = ".\src"
 python -m uvicorn web_security_header_auditor_api:app --reload
+```
 
-Start the frontend in a second terminal:
+Start the frontend in another terminal:
 
+```powershell
 npm --prefix .\frontend run dev
+```
 
-Open the GUI:
+Open:
 
+```text
 http://localhost:5173/
+```
 
-The GUI supports:
+---
 
-Single URL audit
+## Report Outputs
 
-Batch URL audit
+| Output | Usage |
+| --- | --- |
+| Text | Human-readable terminal report |
+| JSON | Structured automation-friendly report |
+| CSV | Spreadsheet-friendly summary report |
+| GUI Copy Summary | Quick analyst summary copied to clipboard |
 
-Batch summary metrics
+---
 
-Weakest target highlight
+## Scoring
 
-Clickable batch results
+The score is a review priority indicator, not a vulnerability verdict.
 
-Scan history
+| Score Range | Meaning |
+| --- | --- |
+| `80-100` | Strong header posture |
+| `50-79` | Needs review |
+| `0-49` | High review priority |
 
-Copy Summary
+---
 
-Download JSON
+## Validation
 
-Download CSV
+Compile Python files:
 
-English and Turkish UI mode
-
-Localized GUI audit output
-
-Report Outputs
-
-Text Report
-
-The text report is intended for terminal review and human-readable summaries.
-
-JSON Report
-
-The JSON report preserves structured audit data for automation, APIs, or future tooling.
-
-CSV Report
-
-The CSV report is useful for spreadsheet review, simple batch comparison, and sharing summary data.
-
-Scoring
-
-The score is a review aid, not a vulnerability verdict. Lower scores indicate that more security headers are missing or that risky values may need review.
-
-Score Range
-
-Grade
-
-Priority
-
-80-100
-
-A
-
-Strong header posture
-
-50-79
-
-B/C
-
-Needs review
-
-0-49
-
-D/F
-
-High review priority
-
-Safety Note
-
-This tool performs passive HTTP response review only. It does not exploit, fuzz, brute force, bypass authentication, or send attack payloads.
-
-Use the results as a security review starting point. Header findings should be validated against the application context before making production changes.
-
-Validation
-
-Compile the Python files:
-
+```powershell
 python -m py_compile .\src\web_security_header_auditor.py
 python -m py_compile .\src\web_security_header_auditor_api.py
+```
 
-Build the frontend:
+Build frontend:
 
+```powershell
 npm --prefix .\frontend run build
+```
 
 Check API paths:
 
+```powershell
 python -c "import sys; sys.path.insert(0, 'src'); from web_security_header_auditor_api import app; print(app.openapi()['paths'].keys())"
+```
 
-License
+---
 
-This project is intended for defensive security learning and passive review wokflows.
+## Defensive Use Only
+
+This project is intended for passive security review, learning, and defensive validation workflows.
