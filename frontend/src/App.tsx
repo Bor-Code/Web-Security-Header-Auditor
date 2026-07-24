@@ -290,7 +290,7 @@ function App() {
             onClick={downloadAuditJson}
             disabled={!result}
           >
-            Download JSON
+            {t('app.downloadJson')}
           </button>
 
           <div className="runtime-status">
