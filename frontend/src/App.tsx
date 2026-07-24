@@ -344,8 +344,22 @@ function App() {
     return 'risk-high'
   }
 
+function getLocalizedPriority(priority: string) {
+  if (i18n.language !== 'tr') {
+    return priority
+  }
+
+  const priorityMap: Record<string, string> = {
+    'Strong header posture': 'Güçlü header duruşu',
+    'Needs review': 'İnceleme gerekli',
+    'High review priority': 'Yüksek inceleme önceliği',
+  }
+
+  return priorityMap[priority] ?? priority
+}
+
   const postureLabel = result
-    ? `${result.priority} / Grade ${result.grade}`
+    ? `${getLocalizedPriority(result.priority)} / Grade ${result.grade}`
     : t('app.awaiting')
 
   return (
@@ -487,7 +501,7 @@ function App() {
                   >
                     <div>
                       <strong>{scan.final_url}</strong>
-                      <span>{scan.priority}</span>
+                      <span>{getLocalizedPriority(scan.priority)}</span>
                     </div>
                     <b>{scan.score}</b>
                     <small>{scan.grade}</small>
@@ -597,7 +611,7 @@ function App() {
                 >
                   <div>
                     <strong>{scan.final_url}</strong>
-                    <span>{scan.priority}</span>
+                    <span>{getLocalizedPriority(scan.priority)}</span>
                   </div>
                   <b>{scan.score}</b>
                   <small>{scan.grade}</small>
