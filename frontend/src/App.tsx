@@ -171,6 +171,7 @@ function App() {
   function getBatchResultClassName(scan: AuditResponse) {
     return [
       'batch-result',
+      getScoreTone(scan.score),
       batchWeakestResult?.checked_at_utc === scan.checked_at_utc
         ? 'weakest'
         : '',
@@ -205,32 +206,103 @@ function App() {
     return summaryLines.join('\n')
   }
 
-  function downloadAuditJson() {
-  if (!result) {
-    setCopyMessage('Run or select an audit first.')
-    return
+  function getExportFileName(scan: AuditResponse, extension: string) {
+    const fileNameTarget = scan.final_url
+      .replace(/^https?:\/\//, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase()
+
+    return `wsh-audit-${fileNameTarget || 'result'}.${extension}`
   }
 
-  const fileNameTarget = result.final_url
-    .replace(/^https?:\/\//, '')
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase()
+  function downloadBlob(content: string, type: string, fileName: string) {
+    const blob = new Blob([content], { type })
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
 
-  const blob = new Blob([JSON.stringify(result, null, 2)], {
-    type: 'application/json',
-  })
+    link.href = downloadUrl
+    link.download = fileName
+    link.click()
 
-  const downloadUrl = URL.createObjectURL(blob)
-  const link = document.createElement('a')
+    URL.revokeObjectURL(downloadUrl)
+  }
 
-  link.href = downloadUrl
-  link.download = `wsh-audit-${fileNameTarget || 'result'}.json`
-  link.click()
+  function downloadAuditJson() {
+    const selectedResult = result
 
-  URL.revokeObjectURL(downloadUrl)
-  setCopyMessage(t('app.jsonDownloaded'))
-}
+    if (!selectedResult) {
+      setCopyMessage('Run or select an audit first.')
+      return
+    }
+
+    downloadBlob(
+      JSON.stringify(selectedResult, null, 2),
+      'application/json',
+      getExportFileName(selectedResult, 'json'),
+    )
+
+    setCopyMessage(t('app.jsonDownloaded'))
+  }
+
+  function escapeCsvValue(value: string | number | boolean) {
+    return `"${value.toString().replace(/"/g, '""')}"`
+  }
+
+  function buildAuditCsv(scan: AuditResponse) {
+    const missingHeaders = scan.header_findings
+      .filter((finding) => !finding.present)
+      .map((finding) => finding.header)
+      .join('; ')
+
+    const headers = [
+      'url',
+      'final_url',
+      'status_code',
+      'uses_https',
+      'score',
+      'max_score',
+      'grade',
+      'priority',
+      'review_notes_count',
+      'missing_headers',
+    ]
+
+    const row = [
+      scan.url,
+      scan.final_url,
+      scan.status_code,
+      scan.uses_https,
+      scan.score,
+      scan.max_score,
+      scan.grade,
+      scan.priority,
+      scan.review_notes_count,
+      missingHeaders || 'None',
+    ]
+
+    return [
+      headers.map(escapeCsvValue).join(','),
+      row.map(escapeCsvValue).join(','),
+    ].join('\n')
+  }
+
+  function downloadAuditCsv() {
+    const selectedResult = result
+
+    if (!selectedResult) {
+      setCopyMessage('Run or select an audit first.')
+      return
+    }
+
+    downloadBlob(
+      buildAuditCsv(selectedResult),
+      'text/csv;charset=utf-8',
+      getExportFileName(selectedResult, 'csv'),
+    )
+
+    setCopyMessage(t('app.csvDownloaded'))
+  }
 
   async function copyAuditSummary() {
     if (!result) {
@@ -256,6 +328,22 @@ function App() {
 
   const totalHeaders = presentHeaders + missingHeaders
 
+  function getScoreTone(score?: number) {
+    if (score === undefined) {
+      return 'risk-idle'
+    }
+
+    if (score >= 80) {
+      return 'risk-strong'
+    }
+
+    if (score >= 50) {
+      return 'risk-review'
+    }
+
+    return 'risk-high'
+  }
+
   const postureLabel = result
     ? `${result.priority} / Grade ${result.grade}`
     : t('app.awaiting')
@@ -272,32 +360,45 @@ function App() {
             </div>
           </div>
 
-        <div className="topbar-actions">
+          <div className="topbar-actions">
             <button className="language-toggle" onClick={toggleLanguage}>
               {i18n.language === 'en' ? 'TR' : 'EN'}
             </button>
 
-          <button
-            className="summary-copy-button"
-            onClick={copyAuditSummary}
-            disabled={!result}
-          >
-            {t('app.copySummary')}
-          </button>
+            <div className="export-panel">
+              <span className="export-panel-label">{t('app.reportActions')}</span>
+              <div className="export-actions">
+                <button
+                  className="summary-copy-button"
+                  onClick={copyAuditSummary}
+                  disabled={!result}
+                >
+                  {t('app.copySummary')}
+                </button>
 
-          <button
-            className="summary-copy-button"
-            onClick={downloadAuditJson}
-            disabled={!result}
-          >
-            {t('app.downloadJson')}
-          </button>
+                <button
+                  className="summary-copy-button"
+                  onClick={downloadAuditJson}
+                  disabled={!result}
+                >
+                  {t('app.downloadJson')}
+                </button>
 
-          <div className="runtime-status">
-            <span className="pulse-dot" />
-            {t('app.api')}
+                <button
+                  className="summary-copy-button"
+                  onClick={downloadAuditCsv}
+                  disabled={!result}
+                >
+                  {t('app.downloadCsv')}
+                </button>
+              </div>
+            </div>
+
+            <div className="runtime-status">
+              <span className="pulse-dot" />
+              {t('app.api')}
+            </div>
           </div>
-        </div>
         </header>
 
         <section className="command-strip">
@@ -403,7 +504,7 @@ function App() {
         {copyMessage ? <div className="copy-banner">{copyMessage}</div> : null}
 
         <section className="mission-grid">
-          <aside className="score-module">
+          <aside className={`score-module ${getScoreTone(result?.score)}`}>
             <div className="module-heading">
               <span>{t('app.postureScore')}</span>
               <strong>{result ? result.grade : '--'}</strong>
@@ -530,7 +631,13 @@ function App() {
                     key={finding.header}
                   >
                     <div className="control-card-top">
-                      <span>
+                      <span
+                        className={
+                          finding.present
+                            ? 'finding-status present'
+                            : 'finding-status missing'
+                        }
+                      >
                         {finding.present ? t('app.present') : t('app.missing')}
                       </span>
                       <strong>{finding.points} pts</strong>
