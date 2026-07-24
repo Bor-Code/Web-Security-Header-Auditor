@@ -206,30 +206,42 @@ function App() {
   }
 
   function downloadAuditJson() {
-  if (!result) {
+  const selectedResult = result
+
+  if (!selectedResult) {
     setCopyMessage('Run or select an audit first.')
     return
   }
 
-  const fileNameTarget = result.final_url
+  downloadBlob(
+    JSON.stringify(selectedResult, null, 2),
+    'application/json',
+    getExportFileName(selectedResult, 'json'),
+  )
+
+  setCopyMessage(t('app.jsonDownloaded'))
+}
+
+  function getExportFileName(scan: AuditResponse, extension: string) {
+  const fileNameTarget = scan.final_url
     .replace(/^https?:\/\//, '')
     .replace(/[^a-z0-9]+/gi, '-')
     .replace(/^-|-$/g, '')
     .toLowerCase()
 
-  const blob = new Blob([JSON.stringify(result, null, 2)], {
-    type: 'application/json',
-  })
+  return `wsh-audit-${fileNameTarget || 'result'}.${extension}`
+}
 
+function downloadBlob(content: string, type: string, fileName: string) {
+  const blob = new Blob([content], { type })
   const downloadUrl = URL.createObjectURL(blob)
   const link = document.createElement('a')
 
   link.href = downloadUrl
-  link.download = `wsh-audit-${fileNameTarget || 'result'}.json`
+  link.download = fileName
   link.click()
 
   URL.revokeObjectURL(downloadUrl)
-  setCopyMessage(t('app.jsonDownloaded'))
 }
 
   async function copyAuditSummary() {
