@@ -169,16 +169,17 @@ function App() {
   )
 
   function getBatchResultClassName(scan: AuditResponse) {
-    return [
-      'batch-result',
-      batchWeakestResult?.checked_at_utc === scan.checked_at_utc
-        ? 'weakest'
-        : '',
-      result?.checked_at_utc === scan.checked_at_utc ? 'selected' : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
-  }
+  return [
+    'batch-result',
+    getScoreTone(scan.score),
+    batchWeakestResult?.checked_at_utc === scan.checked_at_utc
+      ? 'weakest'
+      : '',
+    result?.checked_at_utc === scan.checked_at_utc ? 'selected' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
   function getMissingHeaderNames(scan: AuditResponse) {
     const missingHeaders = scan.header_findings
