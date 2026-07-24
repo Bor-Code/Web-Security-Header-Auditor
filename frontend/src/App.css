@@ -1293,3 +1293,28 @@
 @keyframes beaconHigh {
   50% { filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.34)); }
 }
+
+.finding-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.finding-status.present {
+  border: 1px solid rgba(52, 211, 153, 0.34);
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.finding-status.missing {
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  color: #fca5a5;
+  background: rgba(185, 28, 28, 0.12);
+}

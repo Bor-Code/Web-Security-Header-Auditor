@@ -559,9 +559,9 @@ function downloadBlob(content: string, type: string, fileName: string) {
                     key={finding.header}
                   >
                     <div className="control-card-top">
-                      <span>
+                      <span className={finding.present ? 'finding-status present' : 'finding-status missing'}>
                         {finding.present ? t('app.present') : t('app.missing')}
-                      </span>
+                        </span>
                       <strong>{finding.points} pts</strong>
                     </div>
                     <h3>{finding.header}</h3>
