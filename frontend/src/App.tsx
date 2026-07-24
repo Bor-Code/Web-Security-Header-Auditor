@@ -181,13 +181,6 @@ function App() {
       .join(' ')
   }
 
-  function getMissingHeaderNames(scan: AuditResponse) {
-    const missingHeaders = scan.header_findings
-      .filter((finding) => !finding.present)
-      .map((finding) => finding.header)
-
-    return missingHeaders.length > 0 ? missingHeaders.join(', ') : 'None'
-  }
 
   function buildAuditSummary(scan: AuditResponse) {
     const summaryLines = [
@@ -199,7 +192,7 @@ function App() {
       `Score: ${scan.score} / ${scan.max_score}`,
       `Grade: ${scan.grade}`,
       `Priority: ${scan.priority}`,
-      `Missing Headers: ${getMissingHeaderNames(scan)}`,
+      `Missing Headers: ${getLocalizedMissingHeaderNames(scan)}`,
       `Review Notes Count: ${scan.review_notes_count}`,
     ]
 
@@ -344,19 +337,129 @@ function App() {
     return 'risk-high'
   }
 
-function getLocalizedPriority(priority: string) {
-  if (i18n.language !== 'tr') {
-    return priority
+
+  function isTurkishLanguage() {
+    return i18n.language.startsWith('tr')
   }
 
-  const priorityMap: Record<string, string> = {
-    'Strong header posture': 'Güçlü header duruşu',
-    'Needs review': 'İnceleme gerekli',
-    'High review priority': 'Yüksek inceleme önceliği',
+  function getLocalizedPriority(priority: string) {
+    if (!isTurkishLanguage()) {
+      return priority
+    }
+
+    const priorityMap: Record<string, string> = {
+      'Strong header posture': 'Güçlü header duruşu',
+      'Needs review': 'İnceleme gerekli',
+      'High review priority': 'Yüksek inceleme önceliği',
+    }
+
+    return priorityMap[priority] ?? priority
   }
 
-  return priorityMap[priority] ?? priority
+  function getLocalizedFindingNote(finding: HeaderFinding) {
+    if (finding.value) {
+      return finding.value
+    }
+
+    if (!isTurkishLanguage()) {
+      return finding.note
+    }
+
+    const noteMap: Record<string, string> = {
+      'Content-Security-Policy':
+        'Cross-site scripting ve içerik enjeksiyonu riskini azaltmaya yardımcı olur.',
+      'Strict-Transport-Security':
+        'İlk güvenilir ziyaretten sonra HTTPS kullanımını zorlamaya yardımcı olur.',
+      'X-Frame-Options': 'Clickjacking riskini azaltmaya yardımcı olur.',
+      'X-Content-Type-Options':
+        'MIME type sniffing davranışını önlemeye yardımcı olur.',
+      'Referrer-Policy':
+        'Ne kadar referrer bilgisinin paylaşılacağını kontrol eder.',
+      'Permissions-Policy':
+        'Sayfanın kullanabileceği tarayıcı özelliklerini sınırlar.',
+    }
+
+    return noteMap[finding.header] ?? finding.note
+  }
+
+  function getLocalizedReviewNote(note: string) {
+    if (!isTurkishLanguage()) {
+      return note
+    }
+
+  const reviewNoteMap: Record<string, string> = {
+  'HTTPS is not used; review whether the site should enforce encrypted transport.':
+    'HTTPS kullanılmıyor; sitenin şifreli aktarımı zorlaması gerekip gerekmediğini inceleyin.',
+  'Content-Security-Policy is missing; review whether CSP should be configured to reduce script injection risk.':
+    'Content-Security-Policy eksik; script injection riskini azaltmak için CSP yapılandırılması gerekip gerekmediğini inceleyin.',
+  'Strict-Transport-Security is missing; review whether HTTPS should be enforced with HSTS.':
+    'Strict-Transport-Security eksik; HTTPS kullanımının HSTS ile zorlanması gerekip gerekmediğini inceleyin.',
+  'X-Frame-Options is missing; review whether clickjacking protection is required.':
+    'X-Frame-Options eksik; clickjacking koruması gerekip gerekmediğini inceleyin.',
+  'X-Content-Type-Options is missing; review whether MIME sniffing protection should be enabled.':
+    'X-Content-Type-Options eksik; MIME sniffing korumasının etkinleştirilmesi gerekip gerekmediğini inceleyin.',
+  'Referrer-Policy is missing; review whether referrer data should be limited.':
+    'Referrer-Policy eksik; referrer verisinin sınırlandırılması gerekip gerekmediğini inceleyin.',
+  'Permissions-Policy is missing; review whether browser feature access should be restricted.':
+    'Permissions-Policy eksik; tarayıcı özelliklerine erişimin kısıtlanması gerekip gerekmediğini inceleyin.',
+  'Strict-Transport-Security has max-age=0; review whether HSTS is intentionally disabled.':
+    "Strict-Transport-Security max-age=0 içeriyor; HSTS'nin bilinçli olarak devre dışı bırakılıp bırakılmadığını inceleyin.",
+  'Content-Security-Policy allows unsafe-inline; review whether inline script or style usage can be reduced.':
+    'Content-Security-Policy unsafe-inline kullanımına izin veriyor; inline script veya style kullanımının azaltılıp azaltılamayacağını inceleyin.',
+  'Content-Security-Policy allows unsafe-eval; review whether dynamic code evaluation can be avoided.':
+    'Content-Security-Policy unsafe-eval kullanımına izin veriyor; dinamik kod değerlendirmesinden kaçınılıp kaçınılamayacağını inceleyin.',
+  'X-Frame-Options has an uncommon value; review whether clickjacking protection is configured as intended.':
+    'X-Frame-Options alışılmadık bir değer içeriyor; clickjacking korumasının amaçlandığı gibi yapılandırılıp yapılandırılmadığını inceleyin.',
+  'No immediate header or cookie review notes were generated.':
+    'Anlık header veya cookie inceleme notu üretilmedi.',
 }
+
+    if (reviewNoteMap[note]) {
+      return reviewNoteMap[note]
+    }
+
+    return note
+      .replace(
+        /^Cookie '(.+)' is missing Secure; review whether it should only be sent over HTTPS\.$/,
+        "Cookie '$1' Secure niteliği içermiyor; yalnızca HTTPS üzerinden gönderilmesi gerekip gerekmediğini inceleyin.",
+      )
+      .replace(
+        /^Cookie '(.+)' is missing HttpOnly; review whether client-side script access should be blocked\.$/,
+        "Cookie '$1' HttpOnly niteliği içermiyor; client-side script erişiminin engellenmesi gerekip gerekmediğini inceleyin.",
+      )
+      .replace(
+        /^Cookie '(.+)' is missing SameSite; review whether cross-site cookie behavior should be restricted\.$/,
+        "Cookie '$1' SameSite niteliği içermiyor; cross-site cookie davranışının sınırlandırılması gerekip gerekmediğini inceleyin.",
+      )
+  }
+
+  function getLocalizedMissingHeaderNames(scan: AuditResponse) {
+    const missingHeaders = scan.header_findings
+      .filter((finding) => !finding.present)
+      .map((finding) => finding.header)
+
+    return missingHeaders.length > 0
+      ? missingHeaders.join(', ')
+      : isTurkishLanguage()
+        ? 'Yok'
+        : 'None'
+  }
+
+  function getLocalizedPointsLabel(points: number) {
+    return isTurkishLanguage() ? `${points} puan` : `${points} pts`
+  }
+
+  function getLocalizedStatusLabel() {
+    return isTurkishLanguage() ? 'Durum' : 'Status'
+  }
+
+  function getLocalizedHttpsValue(usesHttps: boolean) {
+    if (isTurkishLanguage()) {
+      return usesHttps ? 'Evet' : 'Hayır'
+    }
+
+    return usesHttps ? 'Yes' : 'No'
+  }
 
   const postureLabel = result
     ? `${getLocalizedPriority(result.priority)} / Grade ${result.grade}`
@@ -535,12 +638,12 @@ function getLocalizedPriority(priority: string) {
 
             <div className="mini-stats">
               <div>
-                <span>Status</span>
+                <span>{getLocalizedStatusLabel()}</span>
                 <strong>{result ? result.status_code : '--'}</strong>
               </div>
               <div>
                 <span>HTTPS</span>
-                <strong>{result ? (result.uses_https ? 'Yes' : 'No') : '--'}</strong>
+                <strong>{result ? getLocalizedHttpsValue(result.uses_https) : '--'}</strong>
               </div>
             </div>
           </aside>
@@ -654,10 +757,10 @@ function getLocalizedPriority(priority: string) {
                       >
                         {finding.present ? t('app.present') : t('app.missing')}
                       </span>
-                      <strong>{finding.points} pts</strong>
+                      <strong>{getLocalizedPointsLabel(finding.points)}</strong>
                     </div>
                     <h3>{finding.header}</h3>
-                    <p>{finding.value ?? finding.note}</p>
+                    <p>{getLocalizedFindingNote(finding)}</p>
                   </article>
                 ))
               ) : (
@@ -684,7 +787,7 @@ function getLocalizedPriority(priority: string) {
                 {result.review_notes.map((note, index) => (
                   <li key={note}>
                     <span>{String(index + 1).padStart(2, '0')}</span>
-                    <p>{note}</p>
+                    <p>{getLocalizedReviewNote(note)}</p>
                   </li>
                 ))}
               </ol>
