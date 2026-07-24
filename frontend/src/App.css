@@ -1235,3 +1235,22 @@
     gap: 8px;
   }
 }
+
+.score-module.risk-strong {
+  border-color: rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 38px rgba(52, 211, 153, 0.12);
+}
+
+.score-module.risk-review {
+  border-color: rgba(250, 204, 21, 0.34);
+  box-shadow: 0 0 38px rgba(250, 204, 21, 0.1);
+}
+
+.score-module.risk-high {
+  border-color: rgba(248, 113, 113, 0.38);
+  box-shadow: 0 0 42px rgba(248, 113, 113, 0.14);
+}
+
+.score-module.risk-idle {
+  border-color: rgba(148, 163, 184, 0.18);
+}

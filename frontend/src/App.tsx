@@ -268,6 +268,22 @@ function downloadBlob(content: string, type: string, fileName: string) {
 
   const totalHeaders = presentHeaders + missingHeaders
 
+  function getScoreTone(score?: number) {
+  if (score === undefined) {
+    return 'risk-idle'
+  }
+
+  if (score >= 80) {
+    return 'risk-strong'
+  }
+
+  if (score >= 50) {
+    return 'risk-review'
+  }
+
+  return 'risk-high'
+}
+
   const postureLabel = result
     ? `${result.priority} / Grade ${result.grade}`
     : t('app.awaiting')
@@ -415,7 +431,7 @@ function downloadBlob(content: string, type: string, fileName: string) {
         {copyMessage ? <div className="copy-banner">{copyMessage}</div> : null}
 
         <section className="mission-grid">
-          <aside className="score-module">
+          <aside className={`score-module ${getScoreTone(result?.score)}`}>
             <div className="module-heading">
               <span>{t('app.postureScore')}</span>
               <strong>{result ? result.grade : '--'}</strong>
