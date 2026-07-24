@@ -229,7 +229,7 @@ function App() {
   link.click()
 
   URL.revokeObjectURL(downloadUrl)
-  setCopyMessage('JSON report downloaded.')
+  setCopyMessage(t('app.jsonDownloaded'))
 }
 
   async function copyAuditSummary() {
