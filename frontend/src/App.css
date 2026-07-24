@@ -1318,3 +1318,44 @@
   color: #fca5a5;
   background: rgba(185, 28, 28, 0.12);
 }
+
+.export-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.42);
+}
+
+.export-panel-label {
+  color: #8fb7d8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.export-actions .summary-copy-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .export-panel,
+  .export-actions {
+    width: 100%;
+  }
+
+  .export-actions .summary-copy-button {
+    flex: 1;
+  }
+}

@@ -169,17 +169,17 @@ function App() {
   )
 
   function getBatchResultClassName(scan: AuditResponse) {
-  return [
-    'batch-result',
-    getScoreTone(scan.score),
-    batchWeakestResult?.checked_at_utc === scan.checked_at_utc
-      ? 'weakest'
-      : '',
-    result?.checked_at_utc === scan.checked_at_utc ? 'selected' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
+    return [
+      'batch-result',
+      getScoreTone(scan.score),
+      batchWeakestResult?.checked_at_utc === scan.checked_at_utc
+        ? 'weakest'
+        : '',
+      result?.checked_at_utc === scan.checked_at_utc ? 'selected' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
 
   function getMissingHeaderNames(scan: AuditResponse) {
     const missingHeaders = scan.header_findings
@@ -206,44 +206,103 @@ function App() {
     return summaryLines.join('\n')
   }
 
-  function downloadAuditJson() {
-  const selectedResult = result
+  function getExportFileName(scan: AuditResponse, extension: string) {
+    const fileNameTarget = scan.final_url
+      .replace(/^https?:\/\//, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase()
 
-  if (!selectedResult) {
-    setCopyMessage('Run or select an audit first.')
-    return
+    return `wsh-audit-${fileNameTarget || 'result'}.${extension}`
   }
 
-  downloadBlob(
-    JSON.stringify(selectedResult, null, 2),
-    'application/json',
-    getExportFileName(selectedResult, 'json'),
-  )
+  function downloadBlob(content: string, type: string, fileName: string) {
+    const blob = new Blob([content], { type })
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
 
-  setCopyMessage(t('app.jsonDownloaded'))
-}
+    link.href = downloadUrl
+    link.download = fileName
+    link.click()
 
-  function getExportFileName(scan: AuditResponse, extension: string) {
-  const fileNameTarget = scan.final_url
-    .replace(/^https?:\/\//, '')
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase()
+    URL.revokeObjectURL(downloadUrl)
+  }
 
-  return `wsh-audit-${fileNameTarget || 'result'}.${extension}`
-}
+  function downloadAuditJson() {
+    const selectedResult = result
 
-function downloadBlob(content: string, type: string, fileName: string) {
-  const blob = new Blob([content], { type })
-  const downloadUrl = URL.createObjectURL(blob)
-  const link = document.createElement('a')
+    if (!selectedResult) {
+      setCopyMessage('Run or select an audit first.')
+      return
+    }
 
-  link.href = downloadUrl
-  link.download = fileName
-  link.click()
+    downloadBlob(
+      JSON.stringify(selectedResult, null, 2),
+      'application/json',
+      getExportFileName(selectedResult, 'json'),
+    )
 
-  URL.revokeObjectURL(downloadUrl)
-}
+    setCopyMessage(t('app.jsonDownloaded'))
+  }
+
+  function escapeCsvValue(value: string | number | boolean) {
+    return `"${value.toString().replace(/"/g, '""')}"`
+  }
+
+  function buildAuditCsv(scan: AuditResponse) {
+    const missingHeaders = scan.header_findings
+      .filter((finding) => !finding.present)
+      .map((finding) => finding.header)
+      .join('; ')
+
+    const headers = [
+      'url',
+      'final_url',
+      'status_code',
+      'uses_https',
+      'score',
+      'max_score',
+      'grade',
+      'priority',
+      'review_notes_count',
+      'missing_headers',
+    ]
+
+    const row = [
+      scan.url,
+      scan.final_url,
+      scan.status_code,
+      scan.uses_https,
+      scan.score,
+      scan.max_score,
+      scan.grade,
+      scan.priority,
+      scan.review_notes_count,
+      missingHeaders || 'None',
+    ]
+
+    return [
+      headers.map(escapeCsvValue).join(','),
+      row.map(escapeCsvValue).join(','),
+    ].join('\n')
+  }
+
+  function downloadAuditCsv() {
+    const selectedResult = result
+
+    if (!selectedResult) {
+      setCopyMessage('Run or select an audit first.')
+      return
+    }
+
+    downloadBlob(
+      buildAuditCsv(selectedResult),
+      'text/csv;charset=utf-8',
+      getExportFileName(selectedResult, 'csv'),
+    )
+
+    setCopyMessage(t('app.csvDownloaded'))
+  }
 
   async function copyAuditSummary() {
     if (!result) {
@@ -270,20 +329,20 @@ function downloadBlob(content: string, type: string, fileName: string) {
   const totalHeaders = presentHeaders + missingHeaders
 
   function getScoreTone(score?: number) {
-  if (score === undefined) {
-    return 'risk-idle'
-  }
+    if (score === undefined) {
+      return 'risk-idle'
+    }
 
-  if (score >= 80) {
-    return 'risk-strong'
-  }
+    if (score >= 80) {
+      return 'risk-strong'
+    }
 
-  if (score >= 50) {
-    return 'risk-review'
-  }
+    if (score >= 50) {
+      return 'risk-review'
+    }
 
-  return 'risk-high'
-}
+    return 'risk-high'
+  }
 
   const postureLabel = result
     ? `${result.priority} / Grade ${result.grade}`
@@ -301,32 +360,45 @@ function downloadBlob(content: string, type: string, fileName: string) {
             </div>
           </div>
 
-        <div className="topbar-actions">
+          <div className="topbar-actions">
             <button className="language-toggle" onClick={toggleLanguage}>
               {i18n.language === 'en' ? 'TR' : 'EN'}
             </button>
 
-          <button
-            className="summary-copy-button"
-            onClick={copyAuditSummary}
-            disabled={!result}
-          >
-            {t('app.copySummary')}
-          </button>
+            <div className="export-panel">
+              <span className="export-panel-label">{t('app.reportActions')}</span>
+              <div className="export-actions">
+                <button
+                  className="summary-copy-button"
+                  onClick={copyAuditSummary}
+                  disabled={!result}
+                >
+                  {t('app.copySummary')}
+                </button>
 
-          <button
-            className="summary-copy-button"
-            onClick={downloadAuditJson}
-            disabled={!result}
-          >
-            {t('app.downloadJson')}
-          </button>
+                <button
+                  className="summary-copy-button"
+                  onClick={downloadAuditJson}
+                  disabled={!result}
+                >
+                  {t('app.downloadJson')}
+                </button>
 
-          <div className="runtime-status">
-            <span className="pulse-dot" />
-            {t('app.api')}
+                <button
+                  className="summary-copy-button"
+                  onClick={downloadAuditCsv}
+                  disabled={!result}
+                >
+                  {t('app.downloadCsv')}
+                </button>
+              </div>
+            </div>
+
+            <div className="runtime-status">
+              <span className="pulse-dot" />
+              {t('app.api')}
+            </div>
           </div>
-        </div>
         </header>
 
         <section className="command-strip">
@@ -559,9 +631,15 @@ function downloadBlob(content: string, type: string, fileName: string) {
                     key={finding.header}
                   >
                     <div className="control-card-top">
-                      <span className={finding.present ? 'finding-status present' : 'finding-status missing'}>
+                      <span
+                        className={
+                          finding.present
+                            ? 'finding-status present'
+                            : 'finding-status missing'
+                        }
+                      >
                         {finding.present ? t('app.present') : t('app.missing')}
-                        </span>
+                      </span>
                       <strong>{finding.points} pts</strong>
                     </div>
                     <h3>{finding.header}</h3>
