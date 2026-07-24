@@ -205,6 +205,33 @@ function App() {
     return summaryLines.join('\n')
   }
 
+  function downloadAuditJson() {
+  if (!result) {
+    setCopyMessage('Run or select an audit first.')
+    return
+  }
+
+  const fileNameTarget = result.final_url
+    .replace(/^https?:\/\//, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+
+  const blob = new Blob([JSON.stringify(result, null, 2)], {
+    type: 'application/json',
+  })
+
+  const downloadUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = downloadUrl
+  link.download = `wsh-audit-${fileNameTarget || 'result'}.json`
+  link.click()
+
+  URL.revokeObjectURL(downloadUrl)
+  setCopyMessage('JSON report downloaded.')
+}
+
   async function copyAuditSummary() {
     if (!result) {
       setCopyMessage('Run or select an audit first.')
@@ -245,24 +272,32 @@ function App() {
             </div>
           </div>
 
-          <div className="topbar-actions">
+        <div className="topbar-actions">
             <button className="language-toggle" onClick={toggleLanguage}>
               {i18n.language === 'en' ? 'TR' : 'EN'}
             </button>
 
-            <button
-              className="summary-copy-button"
-              onClick={copyAuditSummary}
-              disabled={!result}
-            >
-              {t('app.copySummary')}
-            </button>
+          <button
+            className="summary-copy-button"
+            onClick={copyAuditSummary}
+            disabled={!result}
+          >
+            {t('app.copySummary')}
+          </button>
 
-            <div className="runtime-status">
-              <span className="pulse-dot" />
-              {t('app.api')}
-            </div>
+          <button
+            className="summary-copy-button"
+            onClick={downloadAuditJson}
+            disabled={!result}
+          >
+            Download JSON
+          </button>
+
+          <div className="runtime-status">
+            <span className="pulse-dot" />
+            {t('app.api')}
           </div>
+        </div>
         </header>
 
         <section className="command-strip">
